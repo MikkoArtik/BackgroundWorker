@@ -16,3 +16,6 @@ htmlcov
 # Temp files
 .coverage
 poetry.lock
+
+# Service folders
+worker-service/storage
