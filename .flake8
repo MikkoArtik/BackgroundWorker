@@ -4,7 +4,8 @@ max-line-length = 79
 
 ignore = ANN101, D104
 
-exclude = .git,__pycache__,.pytest_cache,build,dist,venv,storage
+exclude = .git,__pycache__,.pytest_cache,build,dist,venv,storage,drafts
 
 per-file-ignores =
 	background-service/service/background_app/routers/task.py: ANN003
+	gstream-library/gstream/node/gpu_task.py: F811

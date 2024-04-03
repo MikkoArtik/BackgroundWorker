@@ -28,6 +28,14 @@ MAXIMAL_TASKS_FOR_USER, MAXIMAL_INPUT_MEGABYTES_SIZE = 2, 1024
 def check_task_exist(func: Callable) -> Callable:
     @wraps(func)
     async def wrapper(**kwargs) -> object:
+        """Checks task existing in Redis Storage.
+
+        Args:
+            **kwargs: function arguments
+
+        Returns: object
+
+        """
         task_id: str = kwargs['task_id']
 
         for key, value in kwargs.items():
@@ -51,6 +59,14 @@ def check_task_exist(func: Callable) -> Callable:
 def check_task_is_ready_for_run(func: Callable) -> Callable:
     @wraps(func)
     async def wrapper(**kwargs) -> Callable:
+        """Checks task ready state for processing.
+
+        Args:
+            **kwargs: function arguments
+
+        Returns: object
+
+        """
         task_id: str = kwargs['task_id']
         redis_storage, file_storage = None, None
 
@@ -97,6 +113,14 @@ def check_task_is_ready_for_run(func: Callable) -> Callable:
 def check_finished_task(func: Callable) -> Callable:
     @wraps(func)
     async def wrapper(**kwargs) -> Callable:
+        """Checks task finishing state.
+
+        Args:
+            **kwargs: function arguments
+
+        Returns: object
+
+        """
         task_id: str = kwargs['task_id']
         redis_storage, file_storage = None, None
 
@@ -138,6 +162,16 @@ async def create_task(
         task_type: str, user_id: str,
         redis_storage: RedisStorage = Depends(get_redis_storage)
 ) -> JSONResponse:
+    """Creates task in Redis Storage.
+
+    Args:
+        task_type: str
+        user_id: str
+        redis_storage: RedisStorage
+
+    Returns: JSONResponse with task ID
+
+    """
     task_ids = await redis_storage.get_user_task_ids(user_id=user_id)
     tasks_count = len(task_ids)
     if tasks_count > MAXIMAL_TASKS_FOR_USER:
@@ -164,6 +198,15 @@ async def get_status(
         task_id: str,
         redis_storage: RedisStorage = Depends(get_redis_storage)
 ) -> JSONResponse:
+    """Returns task state.
+
+    Args:
+        task_id: task ID
+        redis_storage: RedisStorage
+
+    Returns: JSONResponse with task state
+
+    """
     state = await redis_storage.get_task_state(task_id=task_id)
     return JSONResponse(
         content=state.dict(by_alias=True),
@@ -179,6 +222,17 @@ async def load_input_args(
         redis_storage: RedisStorage = Depends(get_redis_storage),
         file_storage: FileStorage = Depends(get_file_storage)
 ) -> Response:
+    """Load input arguments for task.
+
+    Args:
+        task_id: str
+        params: bytes
+        redis_storage: RedisStorage
+        file_storage: FileStorage
+
+    Returns: Response
+
+    """
     if len(params) > convert_megabytes_to_bytes(
             value=MAXIMAL_INPUT_MEGABYTES_SIZE
     ):
@@ -215,6 +269,16 @@ async def run_task(
         redis_storage: RedisStorage = Depends(get_redis_storage),
         file_storage: FileStorage = Depends(get_file_storage)
 ) -> Response:
+    """Runs task by ID.
+
+    Args:
+        task_id: str
+        redis_storage: RedisStorage
+        file_storage: FileStorage
+
+    Returns: Response
+
+    """
     state = await redis_storage.get_task_state(task_id=task_id)
     state.status = TaskStatus.READY.value
     await redis_storage.update_task_state(task_id=task_id, state=state)
@@ -227,6 +291,15 @@ async def kill_task(
         task_id: str,
         redis_storage: RedisStorage = Depends(get_redis_storage)
 ) -> Response:
+    """Kills task by ID.
+
+    Args:
+        task_id: str
+        redis_storage: RedisStorage
+
+    Returns: Response
+
+    """
     state = await redis_storage.get_task_state(task_id=task_id)
     state.is_need_kill = True
 
@@ -242,6 +315,16 @@ async def accept_transfer(
         redis_storage: RedisStorage = Depends(get_redis_storage),
         file_storage: FileStorage = Depends(get_file_storage)
 ) -> Response:
+    """Accepts result on client side.
+
+    Args:
+        task_id: str
+        redis_storage: RedisStorage
+        file_storage: FileStorage
+
+    Returns: Response
+
+    """
     state = await redis_storage.get_task_state(task_id=task_id)
     state.is_transferred = True
 
@@ -255,6 +338,15 @@ async def get_log(
         task_id: str,
         redis_storage: RedisStorage = Depends(get_redis_storage)
 ) -> JSONResponse:
+    """Returns log fro task by id.
+
+    Args:
+        task_id: str
+        redis_storage: RedisStorage
+
+    Returns: JSONResponse with log
+
+    """
     log_text = await redis_storage.get_log(task_id=task_id)
     return JSONResponse(
         content=log_text,
@@ -270,6 +362,16 @@ async def get_result(
         redis_storage: RedisStorage = Depends(get_redis_storage),
         file_storage: FileStorage = Depends(get_file_storage)
 ) -> Response:
+    """Returns task result (bytes format) by ID.
+
+    Args:
+        task_id: str
+        redis_storage: RedisStorage
+        file_storage: FileStorage
+
+    Returns: Response
+
+    """
     state = await redis_storage.get_task_state(task_id=task_id)
     output_args_filename = state.output_args_filename
     data = await file_storage.get_binary_data_from_file(
