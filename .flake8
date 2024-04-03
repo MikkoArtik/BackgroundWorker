@@ -5,3 +5,6 @@ max-line-length = 79
 ignore = ANN101, D104
 
 exclude = .git,__pycache__,.pytest_cache,build,dist,venv,storage
+
+per-file-ignores =
+	background-service/service/backgroud_app/routers/task.py: ANN003
