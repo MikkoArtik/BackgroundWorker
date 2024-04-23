@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+    redis-service:
+        build:
+            context: ./redise-service
+            dockerfile: Dockerfile
+        image: redis-service
+        container_name: redis-service
+        volumes:
+            - ./redis-data:/data
+        ports:
+            - "6379:6379"
+        healthcheck:
+            test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+            interval: 1s
+            timeout: 3s
+            retries: 5
+#
+#    background-service:
+#        build:
+#            context: ./background-service/service
+#            dockerfile: Dockerfile
+#        image: background-service
+#        container_name: background-service
+#        environment:
+#            - APP_HOST=background-service
+#            - APP_PORT=8124
+#        ports:
+#            - "8124:8124"
+#        healthcheck:
+#            test: [
+#                "CMD-SHELL",
+#                "curl --fail http://backgroud-service:8124/ping || exit 1"
+#            ]
+#            interval: 10s
+#            timeout: 5s
+#            retries: 3
+#        depends_on:
+#            redis-service:
+#                condition: service_healthy

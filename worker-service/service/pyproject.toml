@@ -6,9 +6,14 @@ authors = ["Michael <mihail.tchernov@yandex.ru>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.8"
-
+python = "3.8.12"
+psutil = "^5.9.8"
+numpy = "1.24.3"
+pyopencl = "^2024.1"
+gstream = {path = "../dist/gstream-0.1.0-py3-none-any.whl"}
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+

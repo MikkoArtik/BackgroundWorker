@@ -1,11 +1,13 @@
 """Module with spectrogram API routes."""
 
 from functools import wraps
+from pathlib import Path
 from typing import Callable
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import JSONResponse
-from gstream.models import TaskState, TaskStatus
+from gstream.files.scripts import DelaysRunnerScriptFile
+from gstream.models import TaskState, TaskStatus, TaskType
 from gstream.node.common import convert_megabytes_to_bytes
 from gstream.storage.file_system import Storage as FileStorage
 from gstream.storage.redis import Storage as RedisStorage
@@ -102,7 +104,7 @@ def check_task_is_ready_for_run(func: Callable) -> Callable:
         script_filename = state.script_filename
         if not file_storage.is_file_exist(filename=script_filename):
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_500_BAD_REQUEST,
                 detail='Task has not running script'
             )
 
@@ -144,7 +146,7 @@ def check_finished_task(func: Callable) -> Callable:
         if state.status != TaskStatus.FINISHED.value:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f'Task is has status - {state.status} not finished'
+                detail=f'Task is has status - {state.status} (not finished!)'
             )
 
         output_args_filename = state.output_args_filename
@@ -256,7 +258,12 @@ async def load_input_args(
         task_id=task_id,
         text='Input arguments was loaded.'
     )
-    # TODO: add generating script file
+
+    if state.type_ == TaskType.DELAYS.value:
+        await DelaysRunnerScriptFile(
+            path=Path(file_storage.root, state.script_filename),
+            task_id=task_id
+        ).save()
 
     return Response(status_code=status.HTTP_200_OK)
 
@@ -326,7 +333,7 @@ async def accept_transfer(
 
     """
     state = await redis_storage.get_task_state(task_id=task_id)
-    state.is_transferred = True
+    state.is_accepted = True
 
     await redis_storage.update_task_state(task_id=task_id, state=state)
     return Response(status_code=status.HTTP_200_OK)
@@ -338,7 +345,7 @@ async def get_log(
         task_id: str,
         redis_storage: RedisStorage = Depends(get_redis_storage)
 ) -> JSONResponse:
-    """Returns log fro task by id.
+    """Returns log for task by id.
 
     Args:
         task_id: str

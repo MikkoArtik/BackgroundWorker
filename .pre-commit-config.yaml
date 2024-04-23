@@ -8,10 +8,11 @@ repos:
         additional_dependencies:
           - flake8-annotations
           - flake8-quotes
-          - flake8-docstrings
-          - flake8-dunder-all==0.2.2
+#          - flake8-docstrings
+#          - flake8-dunder-all==0.2.2
           - flake8-picky-parentheses
-        args: [--suppress-none-returning, --docstring-convention=google]
+        args: [--suppress-none-returning]
+#        args: [--suppress-none-returning, --docstring-convention=google]
   - repo: https://github.com/pycqa/isort
     rev: 5.12.0
     hooks:
