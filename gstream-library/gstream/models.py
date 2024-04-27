@@ -128,9 +128,7 @@ class TaskState(CustomBaseModel):
 
     def rollback(self):
         self.status = TaskStatus.READY.value
-        self.is_accepted = False
         self.pid = -1
-        self.is_need_kill = False
 
 
 class ArraySize(CustomBaseModel):
