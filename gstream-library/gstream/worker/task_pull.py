@@ -57,8 +57,12 @@ class TaskPull:
                 state = await self.redis_storage.get_task_state(
                     task_id=task_id
                 )
-                if state.is_need_kill:
-                    self.__kill_pull.put_nowait(task_id)
+                if state.status == TaskStatus.KILLED.value:
+                    continue
+                if not state.is_need_kill:
+                    continue
+
+                await self.__kill_pull.put(task_id)
             await asyncio.sleep(SLEEP_TIME_SECONDS)
 
     async def scan_ready_tasks(self):
@@ -103,6 +107,10 @@ class TaskPull:
                 task_id=task_id,
                 state=state
             )
+            await self.redis_storage.add_log_message(
+                task_id=task_id,
+                text='Task was killed'
+            )
             return
 
         try:
@@ -112,6 +120,10 @@ class TaskPull:
             await self.redis_storage.update_task_state(
                 task_id=task_id,
                 state=state
+            )
+            await self.redis_storage.add_log_message(
+                task_id=task_id,
+                text='Task was killed'
             )
             return
 
@@ -124,6 +136,10 @@ class TaskPull:
             await self.redis_storage.update_task_state(
                 task_id=task_id,
                 state=state
+            )
+            await self.redis_storage.add_log_message(
+                task_id=task_id,
+                text='Task was killed'
             )
 
     async def kill_tasks(self):
