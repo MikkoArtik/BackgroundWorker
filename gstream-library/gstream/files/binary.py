@@ -17,12 +17,12 @@ class CharType:
 
     Args:
         __label: C label type
-        __byte_size: int
+        byte_size: int
 
     """
 
     __label = 's'
-    __byte_size = 1
+    byte_size = 1
 
     @staticmethod
     def _is_correct_value(obj: str) -> bool:
@@ -81,11 +81,11 @@ class IntType:
 
     Args:
         __label: C label type
-        __byte_size: int
+        byte_size: int
 
     """
     __label = 'i'
-    __byte_size = 4
+    byte_size = 4
 
     @staticmethod
     def __is_in_range(value: int) -> bool:
@@ -184,11 +184,11 @@ class DoubleType:
 
     Args:
         __label: C label type
-        __byte_size: int
+        byte_size: int
 
     """
     __label = 'd'
-    __byte_size = 8
+    byte_size = 8
 
     @staticmethod
     def __is_in_range(value: float) -> bool:
