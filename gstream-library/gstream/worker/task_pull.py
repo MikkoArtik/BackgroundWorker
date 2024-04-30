@@ -83,8 +83,10 @@ class TaskPull:
                 state = await self.redis_storage.get_task_state(
                     task_id=task_id
                 )
-                if state.is_accepted:
-                    self.__accepted_pull.put_nowait(task_id)
+                if not state.is_accepted:
+                    continue
+
+                await self.__accepted_pull.put(task_id)
             await asyncio.sleep(SLEEP_TIME_SECONDS)
 
     async def __kill_task(self, task_id: str):
