@@ -250,12 +250,3 @@ class TaskPull:
             group_ctx.start_soon(self.kill_tasks)
             group_ctx.start_soon(self.remove_tasks)
             group_ctx.start_soon(self.run_tasks)
-        # await asyncio.gather(
-        #     self.synchronize_file_storage_with_redis(),
-        #     self.scan_killing_tasks(),
-        #     self.scan_ready_tasks(),
-        #     self.scan_accepted_tasks(),
-        #     self.kill_tasks(),
-        #     self.remove_tasks(),
-        #     self.run_tasks()
-        # )
