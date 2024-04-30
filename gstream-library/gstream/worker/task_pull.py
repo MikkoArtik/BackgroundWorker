@@ -24,7 +24,7 @@ class TaskPull:
         self.__file_storage = file_storage
         self.__gpu_rig = GPURig()
 
-        self.__ready_pull = {}
+        self.__ready_pull = Queue()
         self.__kill_pull = Queue()
         self.__accepted_pull = Queue()
 
@@ -74,11 +74,7 @@ class TaskPull:
                 if state.status != TaskStatus.READY.value:
                     continue
 
-                if state.type_ not in self.__ready_pull:
-                    self.__ready_pull[state.type_] = Queue()
-
-                self.__ready_pull[state.type_].put_nowait(task_id)
-
+                await self.__ready_pull.put(task_id)
             await asyncio.sleep(SLEEP_TIME_SECONDS)
 
     async def scan_accepted_tasks(self):
