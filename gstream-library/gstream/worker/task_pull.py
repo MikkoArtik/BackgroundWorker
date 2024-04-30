@@ -11,7 +11,7 @@ from gstream.storage.file_system import Storage as FileStorage
 from gstream.storage.redis import Storage as RedisStorage
 from psutil import STATUS_ZOMBIE, Process
 
-SLEEP_TIME_SECONDS = 10
+SLEEP_TIME_SECONDS = 0.1
 
 
 class TaskPull:
