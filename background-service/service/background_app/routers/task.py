@@ -24,7 +24,7 @@ __all__ = [
 
 router = APIRouter()
 
-MAXIMAL_TASKS_FOR_USER, MAXIMAL_INPUT_MEGABYTES_SIZE = 2, 1024
+MAXIMAL_TASKS_FOR_USER, MAXIMAL_INPUT_MEGABYTES_SIZE = 200, 1024
 
 
 def check_task_exist(func: Callable) -> Callable:
