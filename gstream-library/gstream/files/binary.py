@@ -32,7 +32,8 @@ class CharType:
             return True
         return False
 
-    def _generate_format_string(self, obj: str) -> str:
+    @classmethod
+    def _generate_format_string(cls, obj: str) -> str:
         """Returns type format string.
 
         Args:
@@ -41,13 +42,14 @@ class CharType:
         Returns: str
 
         """
-        if not self._is_correct_value(obj=obj):
+        if not cls._is_correct_value(obj=obj):
             raise ValueError('Value has invalid type or empty')
         if len(obj) == 1:
-            return self.__label
-        return f'{len(obj)}{self.__label}'
+            return cls.__label
+        return f'{len(obj)}{cls.__label}'
 
-    def pack(self, obj: str) -> bytes:
+    @classmethod
+    def pack(cls, obj: str) -> bytes:
         """Pack string to byte object.
 
         Args:
@@ -57,11 +59,12 @@ class CharType:
 
         """
         return struct.pack(
-            self._generate_format_string(obj=obj),
+            cls._generate_format_string(obj=obj),
             obj.encode()
         )
 
-    def unpack(self, value: bytes, symbols_count: int) -> str:
+    @classmethod
+    def unpack(cls, value: bytes, symbols_count: int) -> str:
         """Unpack bytes to string.
 
         Args:
@@ -71,7 +74,7 @@ class CharType:
         Returns: string
 
         """
-        fmt = f'{symbols_count}{self.__label}'
+        fmt = f'{symbols_count}{cls.__label}'
         return struct.unpack(fmt, value)[0].decode('utf-8')
 
 
@@ -101,7 +104,8 @@ class IntType:
             return False
         return True
 
-    def _is_correct_value(self, obj: Union[List[int], int]) -> bool:
+    @classmethod
+    def _is_correct_value(cls, obj: Union[List[int], int]) -> bool:
         """Check correction by value.
 
         Args:
@@ -111,7 +115,7 @@ class IntType:
 
         """
         if isinstance(obj, int):
-            return self.__is_in_range(value=obj)
+            return cls.__is_in_range(value=obj)
         elif isinstance(obj, list):
             if not obj:
                 return False
@@ -119,13 +123,14 @@ class IntType:
             for item in obj:
                 if not isinstance(item, int):
                     return False
-                if not self.__is_in_range(value=item):
+                if not cls.__is_in_range(value=item):
                     return False
             return True
         else:
             return False
 
-    def _generate_format_string(self, obj: Union[List[int], int]) -> str:
+    @classmethod
+    def _generate_format_string(cls, obj: Union[List[int], int]) -> str:
         """Returns type format string.
 
         Args:
@@ -134,17 +139,18 @@ class IntType:
         Returns: str
 
         """
-        if not self._is_correct_value(obj=obj):
+        if not cls._is_correct_value(obj=obj):
             raise ValueError('Value has invalid type or empty')
 
         if isinstance(obj, list):
             if len(obj) == 1:
-                return self.__label
-            return f'{len(obj)}{self.__label}'
+                return cls.__label
+            return f'{len(obj)}{cls.__label}'
         else:
-            return self.__label
+            return cls.__label
 
-    def pack(self, obj: Union[List[int], int]) -> bytes:
+    @classmethod
+    def pack(cls, obj: Union[List[int], int]) -> bytes:
         """Pack integer values to byte object.
 
         Args:
@@ -155,10 +161,11 @@ class IntType:
         """
         if not isinstance(obj, list):
             obj = [obj]
-        return struct.pack(self._generate_format_string(obj=obj), *obj)
+        return struct.pack(cls._generate_format_string(obj=obj), *obj)
 
+    @classmethod
     def unpack(
-            self,
+            cls,
             value: bytes,
             numbers_count: int
     ) -> Union[List[int], int]:
@@ -171,7 +178,7 @@ class IntType:
         Returns: Union[List[int], int]
 
         """
-        fmt = f'{numbers_count}{self.__label}'
+        fmt = f'{numbers_count}{cls.__label}'
         values = list(struct.unpack(fmt, value))
         if numbers_count == 1:
             return values[0]
@@ -204,7 +211,8 @@ class DoubleType:
             return False
         return True
 
-    def _is_correct_value(self, obj: Union[List[float], float]) -> bool:
+    @classmethod
+    def _is_correct_value(cls, obj: Union[List[float], float]) -> bool:
         """Check correction by value.
 
         Args:
@@ -214,7 +222,7 @@ class DoubleType:
 
         """
         if isinstance(obj, (int, float)):
-            return self.__is_in_range(value=obj)
+            return cls.__is_in_range(value=obj)
         elif isinstance(obj, list):
             if not obj:
                 return False
@@ -222,13 +230,14 @@ class DoubleType:
             for item in obj:
                 if not isinstance(item, (int, float)):
                     return False
-                if not self.__is_in_range(value=item):
+                if not cls.__is_in_range(value=item):
                     return False
             return True
         else:
             return False
 
-    def _generate_format_string(self, obj: Union[List[float], float]) -> str:
+    @classmethod
+    def _generate_format_string(cls, obj: Union[List[float], float]) -> str:
         """Returns type format string.
 
         Args:
@@ -237,17 +246,18 @@ class DoubleType:
         Returns: str
 
         """
-        if not self._is_correct_value(obj=obj):
+        if not cls._is_correct_value(obj=obj):
             raise ValueError('Value has invalid type or empty')
 
         if isinstance(obj, list):
             if len(obj) == 1:
-                return self.__label
-            return f'{len(obj)}{self.__label}'
+                return cls.__label
+            return f'{len(obj)}{cls.__label}'
         else:
-            return self.__label
+            return cls.__label
 
-    def pack(self, obj: Union[List[float], float]) -> bytes:
+    @classmethod
+    def pack(cls, obj: Union[List[float], float]) -> bytes:
         """Pack integer values to byte object.
 
         Args:
@@ -261,10 +271,11 @@ class DoubleType:
         else:
             for i in range(len(obj)):
                 obj[i] = float(obj[i])
-        return struct.pack(self._generate_format_string(obj=obj), *obj)
+        return struct.pack(cls._generate_format_string(obj=obj), *obj)
 
+    @classmethod
     def unpack(
-            self,
+            cls,
             value: bytes,
             numbers_count: int
     ) -> Union[List[float], float]:
@@ -277,7 +288,7 @@ class DoubleType:
         Returns: Union[List[int], int]
 
         """
-        fmt = f'{numbers_count}{self.__label}'
+        fmt = f'{numbers_count}{cls.__label}'
         values = list(struct.unpack(fmt, value))
         if numbers_count == 1:
             return values[0]
