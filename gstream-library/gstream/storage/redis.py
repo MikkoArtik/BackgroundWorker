@@ -2,8 +2,10 @@ import json
 from datetime import datetime, timedelta
 from typing import List, Optional, Set, Union
 
-from gstream.models import DATETIME_FORMAT, TaskState, TaskStatus
+from gstream.models import TaskState, TaskStatus
 from redis.asyncio import ConnectionPool, Redis
+
+DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 
 def format_message(message: str) -> str:
