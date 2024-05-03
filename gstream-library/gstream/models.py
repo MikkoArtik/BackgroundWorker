@@ -1,5 +1,6 @@
 import datetime
 import json
+import struct
 import uuid
 from enum import Enum
 from time import time
@@ -8,8 +9,6 @@ from typing import Tuple
 import numpy as np
 from gstream.files.binary import CharType, DoubleType, IntType
 from pydantic import BaseModel, Field, root_validator, validator
-
-DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 
 class TaskType(Enum):
@@ -168,6 +167,72 @@ class Array(CustomBaseModel):
             shape = self.shape.tuple_view
         return np.reshape(vector, shape)
 
+    def convert_to_bytes(self) -> bytes:
+        bytes_value = CharType.pack(obj=self.type_)
+        bytes_value += IntType.pack(obj=list(self.shape.tuple_view))
+        bytes_value += self.data
+        return bytes_value
+
+    @staticmethod
+    def create_from_numpy_array(arr: np.ndarray) -> 'Array':
+        if arr.dtype == np.int32:
+            array_type = ArrayType.INT32.value
+        elif arr.dtype == np.float32:
+            array_type = ArrayType.FLOAT32.value
+        else:
+            raise TypeError('Unsupported array type')
+
+        return Array(
+            type_=array_type,
+            shape=ArraySize(
+                rows_count=arr.shape[0],
+                cols_count=arr.shape[1]
+            ),
+            data=arr.tobytes()
+        )
+
+    @staticmethod
+    def __get_type_from_bytes(bytes_obj: bytes) -> str:
+        for type_name in ArrayType._value2member_map_:
+            symbols_count = len(type_name)
+            try:
+                actual_type = CharType.unpack(
+                    value=bytes_obj[:symbols_count * CharType.byte_size],
+                    symbols_count=symbols_count
+                )
+                if actual_type == type_name:
+                    return type_name
+            except struct.error:
+                continue
+        else:
+            raise TypeError('Unsupported array type')
+
+    @classmethod
+    def create_from_bytes(cls, bytes_obj: bytes) -> 'Array':
+        array_type = cls.__get_type_from_bytes(bytes_obj=bytes_obj)
+
+        left_edge = len(array_type) * CharType.byte_size
+        right_edge = left_edge + 2 * IntType.byte_size
+        rows_count, cols_count = IntType().unpack(
+            value=bytes_obj[left_edge:right_edge],
+            numbers_count=2
+        )
+
+        element_size = np.dtype(array_type).itemsize
+
+        array_bytes_size = len(bytes_obj) - right_edge
+        if rows_count * cols_count * element_size != array_bytes_size:
+            raise ValueError('Invalid input bytes object')
+
+        return Array(
+            type_=array_type,
+            shape=ArraySize(
+                rows_count=rows_count,
+                cols_count=cols_count
+            ),
+            data=bytes_obj[right_edge:]
+        )
+
 
 class DelaysFinderParameters(CustomBaseModel):
     """Pydantic model for delays finder parameters.
@@ -207,11 +272,7 @@ class DelaysFinderParameters(CustomBaseModel):
         bytes_value += IntType.pack(
             obj=self.base_station_index
         )
-        bytes_value += CharType().pack(obj=self.signals.type_)
-        bytes_value += IntType().pack(
-            obj=list(self.signals.shape.tuple_view)
-        )
-        bytes_value += self.signals.data
+        bytes_value += self.signals.convert_to_bytes()
         return bytes_value
 
     @staticmethod
