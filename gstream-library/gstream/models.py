@@ -200,11 +200,11 @@ class DelaysFinderParameters(CustomBaseModel):
         return self.window_size + self.scanner_size
 
     def convert_to_bytes(self) -> bytes:
-        bytes_value = IntType().pack(
+        bytes_value = IntType.pack(
             obj=[self.window_size, self.scanner_size]
         )
-        bytes_value += DoubleType().pack(obj=self.min_correlation)
-        bytes_value += IntType().pack(
+        bytes_value += DoubleType.pack(obj=self.min_correlation)
+        bytes_value += IntType.pack(
             obj=self.base_station_index
         )
         bytes_value += CharType().pack(obj=self.signals.type_)
@@ -217,21 +217,21 @@ class DelaysFinderParameters(CustomBaseModel):
     @staticmethod
     def create_from_bytes(bytes_obj: bytes) -> 'DelaysFinderParameters':
         left_index, right_index = 0, 2 * IntType.byte_size
-        window_size, scanner_size = IntType().unpack(
+        window_size, scanner_size = IntType.unpack(
             value=bytes_obj[left_index:right_index],
             numbers_count=2
         )
 
         left_index = right_index
         right_index += DoubleType.byte_size
-        min_correlation = DoubleType().unpack(
+        min_correlation = DoubleType.unpack(
             value=bytes_obj[left_index:right_index],
             numbers_count=1
         )
 
         left_index = right_index
         right_index += IntType.byte_size
-        base_station_index = IntType().unpack(
+        base_station_index = IntType.unpack(
             value=bytes_obj[left_index:right_index],
             numbers_count=1
         )
@@ -239,14 +239,14 @@ class DelaysFinderParameters(CustomBaseModel):
         left_index = right_index
 
         right_index += CharType.byte_size * len(ArrayType.FLOAT32.value)
-        array_type = CharType().unpack(
+        array_type = CharType.unpack(
             value=bytes_obj[left_index: right_index],
             symbols_count=len(ArrayType.FLOAT32.value)
         )
 
         left_index = right_index
         right_index += 2 * IntType.byte_size
-        rows_count, cols_count = IntType().unpack(
+        rows_count, cols_count = IntType.unpack(
             value=bytes_obj[left_index: right_index],
             numbers_count=2
         )
