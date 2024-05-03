@@ -43,7 +43,11 @@ async def main():
     redis_storage = RedisStorage(
         pool=create_pool()
     )
-    file_storage = FileStorage(root=Path(os.getenv('STORAGE_ROOT')))
+    file_storage = FileStorage(
+        root=Path(
+            os.getenv('STORAGE_ROOT')
+        )
+    )
 
     task_pull = TaskPull(
         redis_storage=redis_storage,
