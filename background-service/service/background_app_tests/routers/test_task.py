@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from dotenv import load_dotenv
 from fastapi import status
+from gstream.models import TaskState
 from gstream.storage.redis import Storage
 from hamcrest import assert_that, equal_to
 from httpx import AsyncClient
@@ -25,15 +26,15 @@ class TestTask:
     async def test_create_task_negative(self, mock_get_redis_storage: Mock,
                                         mock_get_user_task_ids: Mock,
                                         create_async_client: AsyncClient):
+        mock_get_redis_storage.return_value = 'test'
+        mock_get_user_task_ids.return_value = list(
+            range(MAXIMAL_TASKS_FOR_USER + 1)
+        )
         url = URL_PATTERN.format(
             host=APP_HOST,
             port=APP_PORT,
             root_path='background',
             endpoint='create'
-        )
-        mock_get_redis_storage.return_value = 'test'
-        mock_get_user_task_ids.return_value = list(
-            range(MAXIMAL_TASKS_FOR_USER + 1)
         )
         params = {
             'task_type': 'task_type',
@@ -64,12 +65,6 @@ class TestTask:
                                         mock_check_task_type: Mock,
                                         mock_hex: Mock,
                                         create_async_client: AsyncClient):
-        url = URL_PATTERN.format(
-            host=APP_HOST,
-            port=APP_PORT,
-            root_path='background',
-            endpoint='create'
-        )
         mock_get_redis_storage.return_value = 'test-redis'
         mock_get_user_task_ids.return_value = [1, 2]
         mock_check_task_type.return_value = 'test-type'
@@ -78,12 +73,31 @@ class TestTask:
         expected_value = 'test'
         mock_hex.return_value = MagicMock(hex=expected_value)
 
+        url = URL_PATTERN.format(
+            host=APP_HOST,
+            port=APP_PORT,
+            root_path='background',
+            endpoint='create'
+        )
+        task_type = 'task_type'
+        user_id = 'user_id'
         params = {
-            'task_type': 'task_type',
-            'user_id': 'user_id'
+            'task_type': task_type,
+            'user_id': user_id
         }
         response = await create_async_client.post(url=url, params=params)
 
+        mock_get_user_task_ids.assert_called_with(user_id=user_id)
+        mock_add_task.assert_called_once_with(
+            task_state=TaskState(
+                user_id=user_id,
+                type_=task_type
+            )
+        )
+        assert_that(
+            actual_or_assertion=response.status_code,
+            matcher=equal_to(status.HTTP_200_OK)
+        )
         assert_that(
             actual_or_assertion=response.json(),
             matcher=equal_to(expected_value)
