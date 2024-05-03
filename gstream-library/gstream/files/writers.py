@@ -3,7 +3,6 @@
 from pathlib import Path
 
 from gstream.files.base import BaseBinaryFileWriter
-from gstream.files.binary import CharType, IntType
 from gstream.models import Array, DelaysFinderParameters
 
 __all__ = [
@@ -69,7 +68,4 @@ class DelaysFinderResultBinaryFile(BaseBinaryFileWriter):
         Returns: bytes
 
         """
-        bytes_value = CharType().pack(obj=self._data.type_)
-        bytes_value += IntType().pack(obj=list(self._data.shape.tuple_view))
-        bytes_value += self._data.data
-        return bytes_value
+        return self._data.convert_to_bytes()
