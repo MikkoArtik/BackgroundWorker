@@ -5,14 +5,14 @@ import pytest
 from dotenv import load_dotenv
 from fastapi import status
 from gstream.models import TaskState
-from gstream.storage.redis import Storage
+from gstream.storage.redis import Storage as RedisStorage
 from hamcrest import assert_that, equal_to
 from httpx import AsyncClient
 
 from background_app.routers.task import MAXIMAL_TASKS_FOR_USER
 
 load_dotenv()
-APP_HOST = os.getenv('APP_HOST'),
+APP_HOST = os.getenv('APP_HOST')
 APP_PORT = os.getenv('APP_PORT')
 URL_PATTERN = 'http://{host}:{port}/{root_path}/{endpoint}'
 
@@ -20,7 +20,7 @@ URL_PATTERN = 'http://{host}:{port}/{root_path}/{endpoint}'
 class TestTask:
 
     @pytest.mark.negative
-    @patch.object(Storage, 'get_user_task_ids')
+    @patch.object(RedisStorage, 'get_user_task_ids')
     @patch('background_app.routers.dependencies.get_redis_storage')
     @pytest.mark.asyncio
     async def test_create_task_negative(self, mock_get_redis_storage: Mock,
@@ -55,8 +55,8 @@ class TestTask:
     @pytest.mark.positive
     @patch('uuid.uuid4')
     @patch('gstream.models.check_task_type')
-    @patch.object(Storage, 'add_task')
-    @patch.object(Storage, 'get_user_task_ids')
+    @patch.object(RedisStorage, 'add_task')
+    @patch.object(RedisStorage, 'get_user_task_ids')
     @patch('background_app.routers.dependencies.get_redis_storage')
     @pytest.mark.asyncio
     async def test_create_task_positive(self, mock_get_redis_storage: Mock,
