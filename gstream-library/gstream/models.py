@@ -226,8 +226,9 @@ class Array(CustomBaseModel):
 
         element_size = np.dtype(array_type).itemsize
 
-        array_bytes_size = len(bytes_obj) - right_edge
-        if rows_count * cols_count * element_size != array_bytes_size:
+        actual_array_bytes_size = len(bytes_obj) - right_edge
+        excepted_array_bytes_size = rows_count * cols_count * element_size
+        if excepted_array_bytes_size > actual_array_bytes_size:
             raise ValueError('Invalid input bytes object')
 
         return Array(
@@ -236,7 +237,7 @@ class Array(CustomBaseModel):
                 rows_count=rows_count,
                 cols_count=cols_count
             ),
-            data=bytes_obj[right_edge:]
+            data=bytes_obj[right_edge:right_edge + excepted_array_bytes_size]
         )
 
 
