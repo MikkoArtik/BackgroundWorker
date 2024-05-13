@@ -7,6 +7,12 @@ from time import time
 from typing import Tuple
 
 import numpy as np
+from gstream.core_models import (
+    ObservationSystem,
+    SearchSpace,
+    SeismicModel,
+    Spacing
+)
 from gstream.files.binary import CharType, DoubleType, IntType
 from pydantic import BaseModel, Field, root_validator, validator
 
@@ -342,6 +348,42 @@ class DelaysFinderParameters(CustomBaseModel):
         arr: Array = values['signals']
         if values['base_station_index'] >= arr.shape.rows_count:
             raise IndexError('Invalid base station index')
+        return values
+
+
+class LocationParameters(CustomBaseModel):
+    seismic_model: SeismicModel = Field(alias='SeismicModel')
+    observation_system: ObservationSystem = Field(alias='ObservationSystem')
+    search_space: SearchSpace = Field(alias='SearchSpace')
+    spacing: Spacing = Field(alias='Spacing')
+    accuracy: float = Field(alias='Accuracy')
+    base_station_number: int = Field(alias='BaseStationNumber')
+    signal_frequency: int = Field(alias='SignalFrequency')
+    real_delays: np.ndarray = Field(alias='RealDelaysArray')
+    search_space_centers: np.ndarray = Field('SearchSpaceCenters')
+
+    @property
+    def events_count(self) -> int:
+        return self.real_delays.shape[0] - 2
+
+    @root_validator
+    def __check_arguments(cls, values: dict) -> dict:
+        obs_system: ObservationSystem = values['observation_system']
+        base_station_number: int = values['base_station_number']
+        if base_station_number not in obs_system.station_numbers:
+            raise IndexError('Base station is not found in observation system')
+
+        real_delays_arr: np.ndarray = values['real_delays']
+        if real_delays_arr.shape[1] - 2 != obs_system.stations_count:
+            raise IndexError(
+                'Invalid delays array size or observation stations count'
+            )
+
+        coords_arr: np.ndarray = values['search_space_centers']
+        if coords_arr.shape[0] != real_delays_arr.shape[0]:
+            raise IndexError(
+                'Invalid delays or search space centers array sizes'
+            )
         return values
 
 
