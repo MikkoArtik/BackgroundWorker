@@ -159,6 +159,12 @@ class Array(CustomBaseModel):
         else:
             pass
 
+    @property
+    def bytes_size(self) -> int:
+        bytes_size = CharType.byte_size * len(self.type_)
+        bytes_size += len(self.shape.tuple_view) * IntType.byte_size
+        return bytes_size + len(self.data)
+
     def convert_to_numpy_format(self) -> np.ndarray:
         vector = np.frombuffer(self.data, self.dtype)
         if self.shape.rows_count == 0 or self.shape.cols_count == 0:
