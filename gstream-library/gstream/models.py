@@ -337,6 +337,13 @@ class DelaysFinderParameters(CustomBaseModel):
             base_station_index=base_station_index
         )
 
+    @root_validator
+    def __check_arguments(cls, values: dict) -> dict:
+        arr: Array = values['signals']
+        if values['base_station_index'] >= arr.shape.rows_count:
+            raise IndexError('Invalid base station index')
+        return values
+
 
 class PullConfig(BaseModel):
     sleep_time_seconds: int = Field(
