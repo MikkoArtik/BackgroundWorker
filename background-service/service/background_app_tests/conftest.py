@@ -1,12 +1,15 @@
+from typing import Callable
+
 import pytest
+from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
-from main import app
 
+@pytest.fixture
+def get_async_client() -> Callable:
+    def wrap(app: FastAPI) -> AsyncClient:
+        transport = ASGITransport(app=app)
 
-# TODO: fix app importing
-@pytest.fixture(scope='session', autouse=True)
-def create_async_client() -> AsyncClient:
-    transport = ASGITransport(app=app)
+        return AsyncClient(transport=transport)
 
-    return AsyncClient(transport=transport)
+    return wrap
