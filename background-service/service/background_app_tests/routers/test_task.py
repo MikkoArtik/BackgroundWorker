@@ -12,7 +12,7 @@ from hamcrest import assert_that, equal_to
 
 from background_app.routers import task
 from background_app.routers.dependencies import get_redis_storage
-from background_app_tests.helpers import Override, mock_decorator
+from background_app_tests.helpers import DependencyMock, mock_decorator
 
 load_dotenv()
 APP_HOST = os.getenv('APP_HOST')
@@ -132,7 +132,7 @@ class TestTask:
             user_id='test-id',
             type_='test-type'
         )
-        override = Override(return_value=expected_value)
+        override = DependencyMock(return_value=expected_value)
         app = FastAPI(root_path='/background')
 
         with patch(

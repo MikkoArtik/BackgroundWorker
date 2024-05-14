@@ -27,7 +27,7 @@ def mock_decorator(func: Callable) -> Callable:
     return decorated_function
 
 
-class Override:
+class DependencyMock:
     """Class for dependencies overriding."""
 
     def __init__(self, return_value: Any):

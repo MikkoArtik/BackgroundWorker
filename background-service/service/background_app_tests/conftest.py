@@ -7,9 +7,9 @@ from httpx import ASGITransport, AsyncClient
 
 @pytest.fixture
 def get_async_client() -> Callable:
-    def create_async_client(app: FastAPI) -> AsyncClient:
+    def wrap(app: FastAPI) -> AsyncClient:
         transport = ASGITransport(app=app)
 
         return AsyncClient(transport=transport)
 
-    return create_async_client
+    return wrap
