@@ -6,12 +6,14 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from dotenv import load_dotenv
 from fastapi import FastAPI, status
+
+import gstream.node.common
 from gstream.models import TaskState
 from gstream.storage.redis import Storage as RedisStorage
 from hamcrest import assert_that, equal_to
 
 from background_app.routers import task
-from background_app.routers.dependencies import get_redis_storage
+from background_app.routers.dependencies import get_redis_storage, parse_body, get_file_storage
 from background_app_tests.helpers import DependencyMock, mock_decorator
 
 load_dotenv()
@@ -125,14 +127,13 @@ class TestTask:
         params = {
             'task_id': 'task_id',
         }
-        task_type = 'test-type'
-        mock_check_task_type.return_value = task_type
+        mock_check_task_type.return_value = 'task_type'
 
         expected_value = TaskState(
             user_id='test-id',
             type_='test-type'
         )
-        override = DependencyMock(return_value=expected_value)
+        override = DependencyMock(task_state=expected_value)
         app = FastAPI(root_path='/background')
 
         with patch(
@@ -147,6 +148,258 @@ class TestTask:
                 url=url,
                 params=params
             )
+        assert_that(
+            actual_or_assertion=response.status_code,
+            matcher=equal_to(status.HTTP_200_OK)
+        )
+        assert_that(
+            actual_or_assertion=response.json(),
+            matcher=equal_to(expected_value.dict(by_alias=True))
+        )
+
+    @pytest.mark.positive
+    @patch('gstream.models.check_task_type')
+    @pytest.mark.asyncio
+    async def test_load_input_args_positive(self,
+                                            mock_check_task_type: Mock,
+                                            get_async_client: Callable):
+        mock_check_task_type.return_value = 'test-type'
+
+        url = URL_PATTERN.format(
+            host=APP_HOST,
+            port=APP_PORT,
+            root_path='background',
+            endpoint='load-args'
+        )
+        params = {
+            'task_id': 'task_id',
+        }
+        override = DependencyMock(
+            task_state=TaskState(
+                user_id='test-id',
+                type_='test-type'
+            )
+        )
+
+        app = FastAPI(root_path='/background')
+        with patch(
+            'background_app.routers.checkers.check_task_exist', mock_decorator
+        ):
+            reload(task)
+            app.include_router(task.router)
+
+            app.dependency_overrides[
+                get_redis_storage
+            ] = override.override_get_redis_storage
+            app.dependency_overrides[
+                parse_body
+            ] = override.override_parse_body
+            app.dependency_overrides[
+                get_file_storage
+            ] = override.override_get_file_storage
+
+            response = await get_async_client(app=app).post(
+                url=url,
+                params=params
+            )
+        assert_that(
+            actual_or_assertion=response.status_code,
+            matcher=equal_to(status.HTTP_200_OK)
+        )
+
+    @pytest.mark.negative
+    @patch('gstream.node.common.convert_megabytes_to_bytes')
+    @patch('gstream.models.check_task_type')
+    @pytest.mark.asyncio
+    async def test_load_input_args_with_large_bytes_size(
+            self,
+            mock_check_task_type: Mock,
+            mock_convert_megabytes_to_bytes: Mock,
+            get_async_client: Callable
+    ):
+        mock_check_task_type.return_value = 'test-type'
+
+        url = URL_PATTERN.format(
+            host=APP_HOST,
+            port=APP_PORT,
+            root_path='background',
+            endpoint='load-args'
+        )
+        params = {
+            'task_id': 'task_id',
+        }
+        override = DependencyMock()
+
+        app = FastAPI(root_path='/background')
+        with patch(
+            'background_app.routers.checkers.check_task_exist', mock_decorator
+        ):
+            reload(task)
+            app.include_router(task.router)
+
+            app.dependency_overrides[
+                get_redis_storage
+            ] = override.override_get_redis_storage
+            app.dependency_overrides[
+                parse_body
+            ] = override.override_parse_body
+            app.dependency_overrides[
+                get_file_storage
+            ] = override.override_get_file_storage
+            mock_convert_megabytes_to_bytes.return_value = len(
+                await override.override_parse_body()
+            ) - 1
+            response = await get_async_client(app=app).post(
+                url=url,
+                params=params
+            )
+        assert_that(
+            actual_or_assertion=response.status_code,
+            matcher=equal_to(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
+        )
+        assert_that(
+            actual_or_assertion=response.json()['detail'],
+            matcher=equal_to('Too large parameter bytes size')
+        )
+
+    @pytest.mark.negative
+    @patch('gstream.models.check_task_type')
+    @pytest.mark.asyncio
+    async def test_load_input_args_wrong_status(self,
+                                                mock_check_task_type: Mock,
+                                                get_async_client: Callable):
+        mock_check_task_type.return_value = 'test-type'
+
+        url = URL_PATTERN.format(
+            host=APP_HOST,
+            port=APP_PORT,
+            root_path='background',
+            endpoint='load-args'
+        )
+        params = {
+            'task_id': 'task_id',
+        }
+        expected_value = TaskState(
+            user_id='test-id',
+            type_='test-type',
+            status='test-status'
+        )
+        override = DependencyMock(task_state=expected_value)
+
+        app = FastAPI(root_path='/background')
+        with patch(
+                'background_app.routers.checkers.check_task_exist',
+                mock_decorator
+        ):
+            reload(task)
+            app.include_router(task.router)
+
+            app.dependency_overrides[
+                get_redis_storage
+            ] = override.override_get_redis_storage
+            app.dependency_overrides[
+                parse_body
+            ] = override.override_parse_body
+            app.dependency_overrides[
+                get_file_storage
+            ] = override.override_get_file_storage
+
+            response = await get_async_client(app=app).post(
+                url=url,
+                params=params
+            )
+        assert_that(
+            actual_or_assertion=response.status_code,
+            matcher=equal_to(status.HTTP_400_BAD_REQUEST)
+        )
+        assert_that(
+            actual_or_assertion=response.json()['detail'],
+            matcher=equal_to(f'Task has status {expected_value.status}')
+        )
+
+    @pytest.mark.positive
+    @patch('gstream.models.check_task_type')
+    @pytest.mark.asyncio
+    async def test_get_log_positive(self,
+                                    mock_check_task_type: Mock,
+                                    get_async_client: Callable):
+        url = URL_PATTERN.format(
+            host=APP_HOST,
+            port=APP_PORT,
+            root_path='background',
+            endpoint='log'
+        )
+        params = {
+            'task_id': 'task_id',
+        }
+        mock_check_task_type.return_value = 'task_type'
+
+        expected_value = 'test-log'
+        override = DependencyMock(log=expected_value)
+        app = FastAPI(root_path='/background')
+
+        with patch(
+            'background_app.routers.checkers.check_task_exist',
+            mock_decorator
+        ):
+            reload(task)
+            app.include_router(task.router)
+            app.dependency_overrides[
+                get_redis_storage
+            ] = override.override_get_redis_storage
+            response = await get_async_client(app=app).get(
+                url=url,
+                params=params
+            )
+        assert_that(
+            actual_or_assertion=response.status_code,
+            matcher=equal_to(status.HTTP_200_OK)
+        )
+        assert_that(
+            actual_or_assertion=response.json(),
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.positive
+    @patch('gstream.models.check_task_type')
+    @pytest.mark.asyncio
+    async def test_kill_task_positive(self,
+                                      mock_check_task_type: Mock,
+                                      get_async_client: Callable):
+        url = URL_PATTERN.format(
+            host=APP_HOST,
+            port=APP_PORT,
+            root_path='background',
+            endpoint='state'
+        )
+        params = {
+            'task_id': 'task_id',
+        }
+        mock_check_task_type.return_value = 'task_type'
+
+        expected_value = TaskState(
+            user_id='test-id',
+            type_='test-type'
+        )
+        override = DependencyMock(task_state=expected_value)
+        app = FastAPI(root_path='/background')
+
+        with patch(
+            'background_app.routers.checkers.check_task_exist', mock_decorator
+        ):
+            reload(task)
+            app.include_router(task.router)
+            app.dependency_overrides[
+                get_redis_storage
+            ] = override.override_get_redis_storage
+            response = await get_async_client(app=app).get(
+                url=url,
+                params=params
+            )
+        assert_that(
+            actual_or_assertion=response.status_code,
+            matcher=equal_to(status.HTTP_200_OK)
+        )
         assert_that(
             actual_or_assertion=response.json(),
             matcher=equal_to(expected_value.dict(by_alias=True))
