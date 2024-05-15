@@ -21,7 +21,8 @@ from background_app_tests.helpers import DependencyMock, mock_decorator
 load_dotenv()
 APP_HOST = os.getenv('APP_HOST')
 APP_PORT = os.getenv('APP_PORT')
-URL_PATTERN = 'http://{host}:{port}/{root_path}/{endpoint}'
+ROOT_PATH = '/background'
+URL_PATTERN = 'http://{host}:{port}{root_path}/{endpoint}'
 
 
 class TestTask:
@@ -40,14 +41,14 @@ class TestTask:
         url = URL_PATTERN.format(
             host=APP_HOST,
             port=APP_PORT,
-            root_path='background',
+            root_path=ROOT_PATH,
             endpoint='create'
         )
         params = {
             'task_type': 'task_type',
             'user_id': 'user_id'
         }
-        app = FastAPI(root_path='/background')
+        app = FastAPI(root_path=ROOT_PATH)
         app.include_router(task.router)
         response = await get_async_client(app=app).post(url=url, params=params)
         expected_value = 'Too many requests. Try again later.'
@@ -85,7 +86,7 @@ class TestTask:
         url = URL_PATTERN.format(
             host=APP_HOST,
             port=APP_PORT,
-            root_path='background',
+            root_path=ROOT_PATH,
             endpoint='create'
         )
         task_type = 'task_type'
@@ -94,7 +95,7 @@ class TestTask:
             'task_type': task_type,
             'user_id': user_id
         }
-        app = FastAPI(root_path='/background')
+        app = FastAPI(root_path=ROOT_PATH)
         app.include_router(task.router)
         response = await get_async_client(app=app).post(url=url, params=params)
 
@@ -123,7 +124,7 @@ class TestTask:
         url = URL_PATTERN.format(
             host=APP_HOST,
             port=APP_PORT,
-            root_path='background',
+            root_path=ROOT_PATH,
             endpoint='state'
         )
         params = {
@@ -135,8 +136,8 @@ class TestTask:
             user_id='test-id',
             type_='test-type'
         )
-        override = DependencyMock(task_state=expected_value)
-        app = FastAPI(root_path='/background')
+        dependency_mock = DependencyMock(task_state=expected_value)
+        app = FastAPI(root_path=ROOT_PATH)
 
         with patch(
             'background_app.routers.checkers.check_task_exist', mock_decorator
@@ -145,7 +146,7 @@ class TestTask:
             app.include_router(task.router)
             app.dependency_overrides[
                 get_redis_storage
-            ] = override.override_get_redis_storage
+            ] = dependency_mock.override_get_redis_storage
             response = await get_async_client(app=app).get(
                 url=url,
                 params=params
@@ -170,20 +171,20 @@ class TestTask:
         url = URL_PATTERN.format(
             host=APP_HOST,
             port=APP_PORT,
-            root_path='background',
+            root_path=ROOT_PATH,
             endpoint='load-args'
         )
         params = {
             'task_id': 'task_id',
         }
-        override = DependencyMock(
+        dependency_mock = DependencyMock(
             task_state=TaskState(
                 user_id='test-id',
                 type_='test-type'
             )
         )
 
-        app = FastAPI(root_path='/background')
+        app = FastAPI(root_path=ROOT_PATH)
         with patch(
             'background_app.routers.checkers.check_task_exist', mock_decorator
         ):
@@ -192,13 +193,13 @@ class TestTask:
 
             app.dependency_overrides[
                 get_redis_storage
-            ] = override.override_get_redis_storage
+            ] = dependency_mock.override_get_redis_storage
             app.dependency_overrides[
                 parse_body
-            ] = override.override_parse_body
+            ] = dependency_mock.override_parse_body
             app.dependency_overrides[
                 get_file_storage
-            ] = override.override_get_file_storage
+            ] = dependency_mock.override_get_file_storage
 
             response = await get_async_client(app=app).post(
                 url=url,
@@ -224,15 +225,15 @@ class TestTask:
         url = URL_PATTERN.format(
             host=APP_HOST,
             port=APP_PORT,
-            root_path='background',
+            root_path=ROOT_PATH,
             endpoint='load-args'
         )
         params = {
             'task_id': 'task_id',
         }
-        override = DependencyMock()
+        dependency_mock = DependencyMock()
 
-        app = FastAPI(root_path='/background')
+        app = FastAPI(root_path=ROOT_PATH)
         with patch(
             'background_app.routers.checkers.check_task_exist', mock_decorator
         ):
@@ -241,15 +242,15 @@ class TestTask:
 
             app.dependency_overrides[
                 get_redis_storage
-            ] = override.override_get_redis_storage
+            ] = dependency_mock.override_get_redis_storage
             app.dependency_overrides[
                 parse_body
-            ] = override.override_parse_body
+            ] = dependency_mock.override_parse_body
             app.dependency_overrides[
                 get_file_storage
-            ] = override.override_get_file_storage
+            ] = dependency_mock.override_get_file_storage
             mock_convert_megabytes_to_bytes.return_value = len(
-                await override.override_parse_body()
+                await dependency_mock.override_parse_body()
             ) - 1
             response = await get_async_client(app=app).post(
                 url=url,
@@ -275,7 +276,7 @@ class TestTask:
         url = URL_PATTERN.format(
             host=APP_HOST,
             port=APP_PORT,
-            root_path='background',
+            root_path=ROOT_PATH,
             endpoint='load-args'
         )
         params = {
@@ -286,9 +287,9 @@ class TestTask:
             type_='test-type',
             status='test-status'
         )
-        override = DependencyMock(task_state=expected_value)
+        dependency_mock = DependencyMock(task_state=expected_value)
 
-        app = FastAPI(root_path='/background')
+        app = FastAPI(root_path=ROOT_PATH)
         with patch(
                 'background_app.routers.checkers.check_task_exist',
                 mock_decorator
@@ -298,13 +299,13 @@ class TestTask:
 
             app.dependency_overrides[
                 get_redis_storage
-            ] = override.override_get_redis_storage
+            ] = dependency_mock.override_get_redis_storage
             app.dependency_overrides[
                 parse_body
-            ] = override.override_parse_body
+            ] = dependency_mock.override_parse_body
             app.dependency_overrides[
                 get_file_storage
-            ] = override.override_get_file_storage
+            ] = dependency_mock.override_get_file_storage
 
             response = await get_async_client(app=app).post(
                 url=url,
@@ -328,7 +329,7 @@ class TestTask:
         url = URL_PATTERN.format(
             host=APP_HOST,
             port=APP_PORT,
-            root_path='background',
+            root_path=ROOT_PATH,
             endpoint='log'
         )
         params = {
@@ -337,8 +338,8 @@ class TestTask:
         mock_check_task_type.return_value = 'task_type'
 
         expected_value = 'test-log'
-        override = DependencyMock(log=expected_value)
-        app = FastAPI(root_path='/background')
+        dependency_mock = DependencyMock(log=expected_value)
+        app = FastAPI(root_path=ROOT_PATH)
 
         with patch(
             'background_app.routers.checkers.check_task_exist',
@@ -348,7 +349,7 @@ class TestTask:
             app.include_router(task.router)
             app.dependency_overrides[
                 get_redis_storage
-            ] = override.override_get_redis_storage
+            ] = dependency_mock.override_get_redis_storage
             response = await get_async_client(app=app).get(
                 url=url,
                 params=params
@@ -375,7 +376,7 @@ class TestTask:
         url = URL_PATTERN.format(
             host=APP_HOST,
             port=APP_PORT,
-            root_path='background',
+            root_path=ROOT_PATH,
             endpoint='kill'
         )
         task_id = 'task_id'
@@ -387,7 +388,7 @@ class TestTask:
         mock_get_task_state.return_value = task_state
         mock_update_task_state.return_value = 1
 
-        app = FastAPI(root_path='/background')
+        app = FastAPI(root_path=ROOT_PATH)
 
         with patch(
             'background_app.routers.checkers.check_task_exist', mock_decorator

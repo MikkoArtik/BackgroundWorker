@@ -1,7 +1,7 @@
 """Module with helper functions and classes."""
 
 from functools import wraps
-from typing import Any, Callable, List, Optional
+from typing import Callable, List, Optional
 from unittest.mock import AsyncMock, patch
 
 from gstream.storage.redis import Storage
@@ -32,7 +32,7 @@ def mock_decorator(func: Callable) -> Callable:
 class DependencyMock:
     """Class for dependencies overriding."""
 
-    def __init__(self, task_state: Any = None,
+    def __init__(self, task_state: Optional[str] = None,
                  log: Optional[str] = None):
         """Initialize method.
 
@@ -76,17 +76,18 @@ class DependencyMock:
         return storage
 
     @staticmethod
-    async def override_redis_for_kill_task():
+    async def override_redis_for_kill_task() -> Storage:
         """Override get_redis_storage dependency for kill_task.
 
-        Returns: AsyncMock
+        Returns: Storage
         """
         with patch.object(Storage, '__init__') as mock_init:
+            mock_init.return_value = None
+
             with patch.object(
                     Storage, 'get_task_state'
             ) as mock_get_task_state:
-                mock_init.return_value = None
-                mock_get_task_state.return_value = 3
+                mock_get_task_state.return_value = 'test-task'
 
                 storage = Storage()
 
