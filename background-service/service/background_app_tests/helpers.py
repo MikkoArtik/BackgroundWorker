@@ -4,6 +4,7 @@ from functools import wraps
 from typing import Callable, List, Optional
 from unittest.mock import AsyncMock, patch
 
+from gstream.storage.file_system import Storage as FileStorage
 from gstream.storage.redis import Storage
 
 
@@ -61,9 +62,8 @@ class DependencyMock:
 
         Returns: AsyncMock
         """
-        data = AsyncMock()
 
-        return [data]
+        return [AsyncMock()]
 
     @staticmethod
     async def override_get_file_storage() -> AsyncMock:
@@ -71,13 +71,12 @@ class DependencyMock:
 
         Returns: AsyncMock
         """
-        storage = AsyncMock()
 
-        return storage
+        return AsyncMock()
 
     @staticmethod
-    async def override_redis_for_kill_task() -> Storage:
-        """Override get_redis_storage dependency for kill_task.
+    async def override_get_redis_with_instance() -> Storage:
+        """Override get_redis_storage dependency with real RedisStorage.
 
         Returns: Storage
         """
@@ -92,3 +91,14 @@ class DependencyMock:
                 storage = Storage()
 
         return storage
+
+    @staticmethod
+    async def override_get_file_storage_with_instance() -> AsyncMock:
+        """Override get_file_storage dependency with real FileStorage.
+
+        Returns: AsyncMock
+        """
+        with patch.object(FileStorage, '__init__') as mock_init:
+            mock_init.return_value = None
+
+            return FileStorage()
