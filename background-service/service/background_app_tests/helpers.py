@@ -1,8 +1,10 @@
 """Module with helper functions and classes."""
 
 from functools import wraps
-from typing import Any, Callable
-from unittest.mock import AsyncMock
+from typing import Callable, List, Optional
+from unittest.mock import AsyncMock, patch
+
+from gstream.storage.redis import Storage
 
 
 def mock_decorator(func: Callable) -> Callable:
@@ -30,21 +32,63 @@ def mock_decorator(func: Callable) -> Callable:
 class DependencyMock:
     """Class for dependencies overriding."""
 
-    def __init__(self, return_value: Any):
+    def __init__(self, task_state: Optional[str] = None,
+                 log: Optional[str] = None):
         """Initialize method.
 
         Args:
-            return_value: dependency return value
+            task_state: task_state return value
+            log: log return value
         """
 
-        self.return_value = return_value
+        self.task_state = task_state
+        self.log = log
 
     async def override_get_redis_storage(self) -> AsyncMock:
-        """Override dependency.
+        """Override get_redis_storage dependency.
 
         Returns: AsyncMock
         """
-        service = AsyncMock()
-        service.get_task_state.return_value = self.return_value
+        storage = AsyncMock()
+        storage.get_task_state.return_value = self.task_state
+        storage.get_log.return_value = self.log
 
-        return service
+        return storage
+
+    @staticmethod
+    async def override_parse_body() -> List[AsyncMock]:
+        """Override parse_body dependency.
+
+        Returns: AsyncMock
+        """
+        data = AsyncMock()
+
+        return [data]
+
+    @staticmethod
+    async def override_get_file_storage() -> AsyncMock:
+        """Override get_file_storage dependency.
+
+        Returns: AsyncMock
+        """
+        storage = AsyncMock()
+
+        return storage
+
+    @staticmethod
+    async def override_redis_for_kill_task() -> Storage:
+        """Override get_redis_storage dependency for kill_task.
+
+        Returns: Storage
+        """
+        with patch.object(Storage, '__init__') as mock_init:
+            mock_init.return_value = None
+
+            with patch.object(
+                    Storage, 'get_task_state'
+            ) as mock_get_task_state:
+                mock_get_task_state.return_value = 'test-task'
+
+                storage = Storage()
+
+        return storage
