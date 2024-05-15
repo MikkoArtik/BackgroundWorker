@@ -2,9 +2,9 @@
 
 from functools import wraps
 from typing import Any, Callable, List, Optional
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
-import gstream.storage.redis
+from gstream.storage.redis import Storage
 
 
 def mock_decorator(func: Callable) -> Callable:
@@ -55,7 +55,8 @@ class DependencyMock:
 
         return storage
 
-    async def override_parse_body(self) -> List[AsyncMock]:
+    @staticmethod
+    async def override_parse_body() -> List[AsyncMock]:
         """Override parse_body dependency.
 
         Returns: AsyncMock
@@ -64,7 +65,8 @@ class DependencyMock:
 
         return [data]
 
-    async def override_get_file_storage(self) -> AsyncMock:
+    @staticmethod
+    async def override_get_file_storage() -> AsyncMock:
         """Override get_file_storage dependency.
 
         Returns: AsyncMock
@@ -73,25 +75,19 @@ class DependencyMock:
 
         return storage
 
-    async def override_redis_for_kill_task(self) -> AsyncMock:
+    @staticmethod
+    async def override_redis_for_kill_task():
         """Override get_redis_storage dependency for kill_task.
 
         Returns: AsyncMock
         """
-        from gstream.storage.redis import Storage
-        from unittest.mock import patch
-        with patch.object(gstream.storage.redis.Storage, '__init__') as m:
-            m.return_value = None
-            storage = Storage()
+        with patch.object(Storage, '__init__') as mock_init:
+            with patch.object(
+                    Storage, 'get_task_state'
+            ) as mock_get_task_state:
+                mock_init.return_value = None
+                mock_get_task_state.return_value = 3
 
-        await storage.get_task_state(task_id=1)
+                storage = Storage()
 
         return storage
-
-
-import asyncio
-async def qq():
-    over = DependencyMock()
-    return await over.override_redis_for_kill_task()
-
-asyncio.run(qq())

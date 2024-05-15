@@ -1,19 +1,21 @@
 import os
 from importlib import reload
 from typing import Callable
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from dotenv import load_dotenv
 from fastapi import FastAPI, status
-
-import gstream.node.common
 from gstream.models import TaskState
 from gstream.storage.redis import Storage as RedisStorage
 from hamcrest import assert_that, equal_to
 
 from background_app.routers import task
-from background_app.routers.dependencies import get_redis_storage, parse_body, get_file_storage
+from background_app.routers.dependencies import (
+    get_file_storage,
+    get_redis_storage,
+    parse_body
+)
 from background_app_tests.helpers import DependencyMock, mock_decorator
 
 load_dotenv()
@@ -361,46 +363,52 @@ class TestTask:
         )
 
     @pytest.mark.positive
+    @patch.object(RedisStorage, 'update_task_state')
+    @patch.object(RedisStorage, 'get_task_state')
     @patch('gstream.models.check_task_type')
     @pytest.mark.asyncio
     async def test_kill_task_positive(self,
                                       mock_check_task_type: Mock,
+                                      mock_get_task_state: Mock,
+                                      mock_update_task_state: Mock,
                                       get_async_client: Callable):
         url = URL_PATTERN.format(
             host=APP_HOST,
             port=APP_PORT,
             root_path='background',
-            endpoint='state'
+            endpoint='kill'
         )
+        task_id = 'task_id'
         params = {
-            'task_id': 'task_id',
+            'task_id': task_id,
         }
         mock_check_task_type.return_value = 'task_type'
+        task_state = AsyncMock(is_need_kill=True)
+        mock_get_task_state.return_value = task_state
+        mock_update_task_state.return_value = 1
 
-        expected_value = TaskState(
-            user_id='test-id',
-            type_='test-type'
-        )
-        override = DependencyMock(task_state=expected_value)
         app = FastAPI(root_path='/background')
 
         with patch(
             'background_app.routers.checkers.check_task_exist', mock_decorator
         ):
             reload(task)
+
             app.include_router(task.router)
             app.dependency_overrides[
                 get_redis_storage
-            ] = override.override_get_redis_storage
-            response = await get_async_client(app=app).get(
+            ] = DependencyMock.override_redis_for_kill_task
+
+            response = await get_async_client(app=app).post(
                 url=url,
                 params=params
             )
+        mock_get_task_state.assert_called_once_with(task_id=task_id)
+        mock_update_task_state.assert_called_once_with(
+            task_id=task_id,
+            state=task_state
+        )
         assert_that(
             actual_or_assertion=response.status_code,
             matcher=equal_to(status.HTTP_200_OK)
-        )
-        assert_that(
-            actual_or_assertion=response.json(),
-            matcher=equal_to(expected_value.dict(by_alias=True))
         )
