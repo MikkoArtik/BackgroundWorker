@@ -32,8 +32,11 @@ def mock_decorator(func: Callable) -> Callable:
 class DependencyMock:
     """Class for dependencies overriding."""
 
-    def __init__(self, task_state: Optional[str] = None,
-                 log: Optional[str] = None):
+    def __init__(
+            self,
+            task_state: Optional[str] = None,
+            log: Optional[str] = None
+    ):
         """Initialize method.
 
         Args:
