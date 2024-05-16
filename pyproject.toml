@@ -7,17 +7,19 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "3.8.12"
-isort = "^5.13.2"
-flake8 = "^7.0.0"
-coverage = "^7.4.1"
-pre-commit = "^3.5.0"
-pytest = "^8.0.0"
-pyhamcrest = "^2.1.0"
-pytest-asyncio = "^0.23.4"
-httpx = "^0.26.0"
-python-dotenv = "^1.0.1"
-redis = "^5.0.2"
 
+
+[tool.poetry.group.test.dependencies]
+pytest = "8.0.0"
+pyhamcrest = "2.1.0"
+pytest-asyncio = "^0.23.6"
+httpx = "0.26.0"
+
+
+[tool.poetry.group.git.dependencies]
+isort = "5.13.2"
+flake8 = "7.0.0"
+pre-commit = "3.5.0"
 
 [build-system]
 requires = ["poetry-core"]
