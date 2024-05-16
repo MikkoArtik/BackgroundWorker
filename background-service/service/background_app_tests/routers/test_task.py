@@ -411,7 +411,9 @@ class TestTask:
             app.include_router(task.router)
 
             new_dependencies = {
-                get_redis_storage: DependencyMock.override_redis_for_kill_task,
+                get_redis_storage: (
+                    DependencyMock.override_get_redis_with_instance
+                ),
             }
             app.dependency_overrides.update(new_dependencies)
 
@@ -468,15 +470,14 @@ class TestTask:
                 reload(task)
                 app.include_router(task.router)
 
-                app.dependency_overrides[
-                    get_redis_storage
-                ] = DependencyMock.override_get_redis_with_instance
-                app.dependency_overrides[
-                    parse_body
-                ] = DependencyMock.override_parse_body
-                app.dependency_overrides[
-                    get_file_storage
-                ] = DependencyMock.override_get_file_storage
+                new_dependencies = {
+                    get_redis_storage: (
+                        DependencyMock.override_get_redis_with_instance
+                    ),
+                    parse_body: DependencyMock.override_parse_body,
+                    get_file_storage: DependencyMock.override_get_file_storage
+                }
+                app.dependency_overrides.update(new_dependencies)
 
                 response = await get_async_client(app=app).post(
                     url=url,
@@ -531,15 +532,14 @@ class TestTask:
                 reload(task)
                 app.include_router(task.router)
 
-                app.dependency_overrides[
-                    get_redis_storage
-                ] = DependencyMock.override_get_redis_with_instance
-                app.dependency_overrides[
-                    parse_body
-                ] = DependencyMock.override_parse_body
-                app.dependency_overrides[
-                    get_file_storage
-                ] = DependencyMock.override_get_file_storage
+                new_dependencies = {
+                    get_redis_storage: (
+                        DependencyMock.override_get_redis_with_instance
+                    ),
+                    parse_body: DependencyMock.override_parse_body,
+                    get_file_storage: DependencyMock.override_get_file_storage
+                }
+                app.dependency_overrides.update(new_dependencies)
 
                 response = await get_async_client(app=app).post(
                     url=url,
@@ -597,15 +597,16 @@ class TestTask:
                 reload(task)
                 app.include_router(task.router)
 
-                app.dependency_overrides[
-                    get_redis_storage
-                ] = DependencyMock.override_get_redis_with_instance
-                app.dependency_overrides[
-                    parse_body
-                ] = DependencyMock.override_parse_body
-                app.dependency_overrides[
-                    get_file_storage
-                ] = DependencyMock.override_get_file_storage_with_instance
+                new_dependencies = {
+                    get_redis_storage: (
+                        DependencyMock.override_get_redis_with_instance
+                    ),
+                    parse_body: DependencyMock.override_parse_body,
+                    get_file_storage: (
+                        DependencyMock.override_get_file_storage_with_instance
+                    )
+                }
+                app.dependency_overrides.update(new_dependencies)
 
                 response = await get_async_client(app=app).get(
                     url=url,

@@ -4,8 +4,9 @@ from functools import wraps
 from typing import Callable, List, Optional
 from unittest.mock import AsyncMock, patch
 
+from gstream.models import TaskState
 from gstream.storage.file_system import Storage as FileStorage
-from gstream.storage.redis import Storage
+from gstream.storage.redis import Storage as RedisStorage
 
 
 def mock_decorator(func: Callable) -> Callable:
@@ -35,7 +36,7 @@ class DependencyMock:
 
     def __init__(
             self,
-            task_state: Optional[str] = None,
+            task_state: Optional[TaskState] = None,
             log: Optional[str] = None
     ):
         """Initialize method.
@@ -78,22 +79,20 @@ class DependencyMock:
         return AsyncMock()
 
     @staticmethod
-    async def override_get_redis_with_instance() -> Storage:
+    async def override_get_redis_with_instance() -> RedisStorage:
         """Override get_redis_storage dependency with real RedisStorage.
 
         Returns: Storage
         """
-        with patch.object(Storage, '__init__') as mock_init:
+        with patch.object(RedisStorage, '__init__') as mock_init:
             mock_init.return_value = None
 
             with patch.object(
-                    Storage, 'get_task_state'
+                RedisStorage, 'get_task_state'
             ) as mock_get_task_state:
                 mock_get_task_state.return_value = 'test-task'
 
-                storage = Storage()
-
-        return storage
+            return RedisStorage()
 
     @staticmethod
     async def override_get_file_storage_with_instance() -> AsyncMock:
