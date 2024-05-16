@@ -9,6 +9,7 @@ from typing import Tuple
 import numpy as np
 from gstream.core_models import (
     ObservationSystem,
+    Range,
     SearchSpace,
     SeismicModel,
     Spacing
@@ -385,6 +386,19 @@ class DiffFunctionParameters(CustomBaseModel):
             raise IndexError(
                 'Invalid delays or search space centers array sizes'
             )
+
+        search_space: SearchSpace = values['search_space']
+
+        for i, axis in enumerate('xyz'):
+            axis_range_space_centers = Range(
+                min_=float(min(coords_arr[:, i])),
+                max_=float(max(coords_arr[:, i]))
+            )
+            if not search_space.x_range.is_full_include(
+                other=axis_range_space_centers
+            ):
+                raise ValueError(f'Invalid search space by {axis}-axis')
+        return values
         return values
 
 
