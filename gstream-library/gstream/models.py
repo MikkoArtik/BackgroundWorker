@@ -351,7 +351,7 @@ class DelaysFinderParameters(CustomBaseModel):
         return values
 
 
-class LocationParameters(CustomBaseModel):
+class DiffFunctionParameters(CustomBaseModel):
     seismic_model: SeismicModel = Field(alias='SeismicModel')
     observation_system: ObservationSystem = Field(alias='ObservationSystem')
     search_space: SearchSpace = Field(alias='SearchSpace')
