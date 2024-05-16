@@ -364,7 +364,7 @@ class DiffFunctionParameters(CustomBaseModel):
 
     @property
     def events_count(self) -> int:
-        return self.real_delays.shape[0] - 2
+        return self.real_delays.shape[0]
 
     @root_validator
     def __check_arguments(cls, values: dict) -> dict:
