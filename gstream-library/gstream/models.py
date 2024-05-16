@@ -54,6 +54,7 @@ class CustomBaseModel(BaseModel):
         """Model configuration."""
 
         allow_population_by_field_name = True
+        arbitrary_types_allowed = True
 
 
 class TaskState(CustomBaseModel):
