@@ -4,7 +4,9 @@ from functools import wraps
 from typing import Callable, List, Optional
 from unittest.mock import AsyncMock, patch
 
-from gstream.storage.redis import Storage
+from gstream.models import TaskState
+from gstream.storage.file_system import Storage as FileStorage
+from gstream.storage.redis import Storage as RedisStorage
 
 
 def mock_decorator(func: Callable) -> Callable:
@@ -32,8 +34,11 @@ def mock_decorator(func: Callable) -> Callable:
 class DependencyMock:
     """Class for dependencies overriding."""
 
-    def __init__(self, task_state: Optional[str] = None,
-                 log: Optional[str] = None):
+    def __init__(
+            self,
+            task_state: Optional[TaskState] = None,
+            log: Optional[str] = None
+    ):
         """Initialize method.
 
         Args:
@@ -61,9 +66,8 @@ class DependencyMock:
 
         Returns: AsyncMock
         """
-        data = AsyncMock()
 
-        return [data]
+        return [AsyncMock()]
 
     @staticmethod
     async def override_get_file_storage() -> AsyncMock:
@@ -71,24 +75,32 @@ class DependencyMock:
 
         Returns: AsyncMock
         """
-        storage = AsyncMock()
 
-        return storage
+        return AsyncMock()
 
     @staticmethod
-    async def override_redis_for_kill_task() -> Storage:
-        """Override get_redis_storage dependency for kill_task.
+    async def override_get_redis_with_instance() -> RedisStorage:
+        """Override get_redis_storage dependency with real RedisStorage.
 
         Returns: Storage
         """
-        with patch.object(Storage, '__init__') as mock_init:
+        with patch.object(RedisStorage, '__init__') as mock_init:
             mock_init.return_value = None
 
             with patch.object(
-                    Storage, 'get_task_state'
+                RedisStorage, 'get_task_state'
             ) as mock_get_task_state:
                 mock_get_task_state.return_value = 'test-task'
 
-                storage = Storage()
+            return RedisStorage()
 
-        return storage
+    @staticmethod
+    async def override_get_file_storage_with_instance() -> AsyncMock:
+        """Override get_file_storage dependency with real FileStorage.
+
+        Returns: AsyncMock
+        """
+        with patch.object(FileStorage, '__init__') as mock_init:
+            mock_init.return_value = None
+
+            return FileStorage()

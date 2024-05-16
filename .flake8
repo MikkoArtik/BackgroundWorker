@@ -2,7 +2,7 @@
 inline-quotes = '
 max-line-length = 79
 
-ignore = ANN002, ANN101, ANN102, D104
+ignore = ANN002, ANN003, ANN101, ANN102, D104
 
 exclude = .git,__pycache__,.pytest_cache,build,dist,venv,storage,drafts
 
