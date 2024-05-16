@@ -221,6 +221,8 @@ class Storage:
             name=full_key,
             value=json.dumps(state.dict(by_alias=True))
         )
+        await self.__set_time_expiration(keys_pattern=full_key)
+
         await self.add_log_message(
             task_id=task_id,
             text='Task state was updated'
