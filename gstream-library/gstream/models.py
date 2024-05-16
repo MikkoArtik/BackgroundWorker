@@ -1,15 +1,21 @@
 import datetime
 import json
+import struct
 import uuid
 from enum import Enum
 from time import time
 from typing import Tuple
 
 import numpy as np
+from gstream.core_models import (
+    ObservationSystem,
+    Range,
+    SearchSpace,
+    SeismicModel,
+    Spacing
+)
 from gstream.files.binary import CharType, DoubleType, IntType
 from pydantic import BaseModel, Field, root_validator, validator
-
-DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 
 class TaskType(Enum):
@@ -49,6 +55,7 @@ class CustomBaseModel(BaseModel):
         """Model configuration."""
 
         allow_population_by_field_name = True
+        arbitrary_types_allowed = True
 
 
 class TaskState(CustomBaseModel):
@@ -128,9 +135,7 @@ class TaskState(CustomBaseModel):
 
     def rollback(self):
         self.status = TaskStatus.READY.value
-        self.is_accepted = False
         self.pid = -1
-        self.is_need_kill = False
 
 
 class ArraySize(CustomBaseModel):
@@ -162,6 +167,12 @@ class Array(CustomBaseModel):
         else:
             pass
 
+    @property
+    def bytes_size(self) -> int:
+        bytes_size = CharType.byte_size * len(self.type_)
+        bytes_size += len(self.shape.tuple_view) * IntType.byte_size
+        return bytes_size + len(self.data)
+
     def convert_to_numpy_format(self) -> np.ndarray:
         vector = np.frombuffer(self.data, self.dtype)
         if self.shape.rows_count == 0 or self.shape.cols_count == 0:
@@ -169,6 +180,73 @@ class Array(CustomBaseModel):
         else:
             shape = self.shape.tuple_view
         return np.reshape(vector, shape)
+
+    def convert_to_bytes(self) -> bytes:
+        bytes_value = CharType.pack(obj=self.type_)
+        bytes_value += IntType.pack(obj=list(self.shape.tuple_view))
+        bytes_value += self.data
+        return bytes_value
+
+    @staticmethod
+    def create_from_numpy_array(arr: np.ndarray) -> 'Array':
+        if arr.dtype == np.int32:
+            array_type = ArrayType.INT32.value
+        elif arr.dtype == np.float32:
+            array_type = ArrayType.FLOAT32.value
+        else:
+            raise TypeError('Unsupported array type')
+
+        return Array(
+            type_=array_type,
+            shape=ArraySize(
+                rows_count=arr.shape[0],
+                cols_count=arr.shape[1]
+            ),
+            data=arr.tobytes()
+        )
+
+    @staticmethod
+    def __get_type_from_bytes(bytes_obj: bytes) -> str:
+        for type_name in ArrayType._value2member_map_:
+            symbols_count = len(type_name)
+            try:
+                actual_type = CharType.unpack(
+                    value=bytes_obj[:symbols_count * CharType.byte_size],
+                    symbols_count=symbols_count
+                )
+                if actual_type == type_name:
+                    return type_name
+            except struct.error:
+                continue
+        else:
+            raise TypeError('Unsupported array type')
+
+    @classmethod
+    def create_from_bytes(cls, bytes_obj: bytes) -> 'Array':
+        array_type = cls.__get_type_from_bytes(bytes_obj=bytes_obj)
+
+        left_edge = len(array_type) * CharType.byte_size
+        right_edge = left_edge + 2 * IntType.byte_size
+        rows_count, cols_count = IntType().unpack(
+            value=bytes_obj[left_edge:right_edge],
+            numbers_count=2
+        )
+
+        element_size = np.dtype(array_type).itemsize
+
+        actual_array_bytes_size = len(bytes_obj) - right_edge
+        excepted_array_bytes_size = rows_count * cols_count * element_size
+        if excepted_array_bytes_size > actual_array_bytes_size:
+            raise ValueError('Invalid input bytes object')
+
+        return Array(
+            type_=array_type,
+            shape=ArraySize(
+                rows_count=rows_count,
+                cols_count=cols_count
+            ),
+            data=bytes_obj[right_edge:right_edge + excepted_array_bytes_size]
+        )
 
 
 class DelaysFinderParameters(CustomBaseModel):
@@ -202,38 +280,34 @@ class DelaysFinderParameters(CustomBaseModel):
         return self.window_size + self.scanner_size
 
     def convert_to_bytes(self) -> bytes:
-        bytes_value = IntType().pack(
+        bytes_value = IntType.pack(
             obj=[self.window_size, self.scanner_size]
         )
-        bytes_value += DoubleType().pack(obj=self.min_correlation)
-        bytes_value += IntType().pack(
+        bytes_value += DoubleType.pack(obj=self.min_correlation)
+        bytes_value += IntType.pack(
             obj=self.base_station_index
         )
-        bytes_value += CharType().pack(obj=self.signals.type_)
-        bytes_value += IntType().pack(
-            obj=list(self.signals.shape.tuple_view)
-        )
-        bytes_value += self.signals.data
+        bytes_value += self.signals.convert_to_bytes()
         return bytes_value
 
     @staticmethod
     def create_from_bytes(bytes_obj: bytes) -> 'DelaysFinderParameters':
         left_index, right_index = 0, 2 * IntType.byte_size
-        window_size, scanner_size = IntType().unpack(
+        window_size, scanner_size = IntType.unpack(
             value=bytes_obj[left_index:right_index],
             numbers_count=2
         )
 
         left_index = right_index
         right_index += DoubleType.byte_size
-        min_correlation = DoubleType().unpack(
+        min_correlation = DoubleType.unpack(
             value=bytes_obj[left_index:right_index],
             numbers_count=1
         )
 
         left_index = right_index
         right_index += IntType.byte_size
-        base_station_index = IntType().unpack(
+        base_station_index = IntType.unpack(
             value=bytes_obj[left_index:right_index],
             numbers_count=1
         )
@@ -241,14 +315,14 @@ class DelaysFinderParameters(CustomBaseModel):
         left_index = right_index
 
         right_index += CharType.byte_size * len(ArrayType.FLOAT32.value)
-        array_type = CharType().unpack(
+        array_type = CharType.unpack(
             value=bytes_obj[left_index: right_index],
             symbols_count=len(ArrayType.FLOAT32.value)
         )
 
         left_index = right_index
         right_index += 2 * IntType.byte_size
-        rows_count, cols_count = IntType().unpack(
+        rows_count, cols_count = IntType.unpack(
             value=bytes_obj[left_index: right_index],
             numbers_count=2
         )
@@ -270,6 +344,62 @@ class DelaysFinderParameters(CustomBaseModel):
             min_correlation=min_correlation,
             base_station_index=base_station_index
         )
+
+    @root_validator
+    def __check_arguments(cls, values: dict) -> dict:
+        arr: Array = values['signals']
+        if values['base_station_index'] >= arr.shape.rows_count:
+            raise IndexError('Invalid base station index')
+        return values
+
+
+class DiffFunctionParameters(CustomBaseModel):
+    seismic_model: SeismicModel = Field(alias='SeismicModel')
+    observation_system: ObservationSystem = Field(alias='ObservationSystem')
+    search_space: SearchSpace = Field(alias='SearchSpace')
+    spacing: Spacing = Field(alias='Spacing')
+    accuracy: float = Field(alias='Accuracy')
+    base_station_number: int = Field(alias='BaseStationNumber')
+    signal_frequency: int = Field(alias='SignalFrequency')
+    real_delays: np.ndarray = Field(alias='RealDelaysArray')
+    search_space_centers: np.ndarray = Field('SearchSpaceCenters')
+
+    @property
+    def events_count(self) -> int:
+        return self.real_delays.shape[0]
+
+    @root_validator
+    def __check_arguments(cls, values: dict) -> dict:
+        obs_system: ObservationSystem = values['observation_system']
+        base_station_number: int = values['base_station_number']
+        if base_station_number not in obs_system.station_numbers:
+            raise IndexError('Base station is not found in observation system')
+
+        real_delays_arr: np.ndarray = values['real_delays']
+        if real_delays_arr.shape[1] - 2 != obs_system.stations_count:
+            raise IndexError(
+                'Invalid delays array size or observation stations count'
+            )
+
+        coords_arr: np.ndarray = values['search_space_centers']
+        if coords_arr.shape[0] != real_delays_arr.shape[0]:
+            raise IndexError(
+                'Invalid delays or search space centers array sizes'
+            )
+
+        search_space: SearchSpace = values['search_space']
+
+        for i, axis in enumerate('xyz'):
+            axis_range_space_centers = Range(
+                min_=float(min(coords_arr[:, i])),
+                max_=float(max(coords_arr[:, i]))
+            )
+            if not search_space.x_range.is_full_include(
+                other=axis_range_space_centers
+            ):
+                raise ValueError(f'Invalid search space by {axis}-axis')
+        return values
+        return values
 
 
 class PullConfig(BaseModel):

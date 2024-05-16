@@ -32,9 +32,12 @@ class TestTask:
     @patch.object(RedisStorage, 'get_user_task_ids')
     @patch('background_app.routers.dependencies.get_redis_storage')
     @pytest.mark.asyncio
-    async def test_create_task_negative(self, mock_get_redis_storage: Mock,
-                                        mock_get_user_task_ids: Mock,
-                                        get_async_client: Callable):
+    async def test_create_task_negative(
+            self,
+            mock_get_redis_storage: Mock,
+            mock_get_user_task_ids: Mock,
+            get_async_client: Callable
+    ):
         mock_get_redis_storage.return_value = 'test'
         mock_get_user_task_ids.return_value = list(
             range(task.MAXIMAL_TASKS_FOR_USER + 1)
@@ -70,12 +73,15 @@ class TestTask:
     @patch.object(RedisStorage, 'get_user_task_ids')
     @patch('background_app.routers.dependencies.get_redis_storage')
     @pytest.mark.asyncio
-    async def test_create_task_positive(self, mock_get_redis_storage: Mock,
-                                        mock_get_user_task_ids: Mock,
-                                        mock_add_task: Mock,
-                                        mock_check_task_type: Mock,
-                                        mock_hex: Mock,
-                                        get_async_client: Callable):
+    async def test_create_task_positive(
+            self,
+            mock_get_redis_storage: Mock,
+            mock_get_user_task_ids: Mock,
+            mock_add_task: Mock,
+            mock_check_task_type: Mock,
+            mock_hex: Mock,
+            get_async_client: Callable
+    ):
         mock_get_redis_storage.return_value = 'test-redis'
         mock_get_user_task_ids.return_value = [1, 2]
         mock_check_task_type.return_value = 'test-type'
@@ -119,9 +125,11 @@ class TestTask:
     @pytest.mark.positive
     @patch('gstream.models.check_task_type')
     @pytest.mark.asyncio
-    async def test_get_status_positive(self,
-                                       mock_check_task_type: Mock,
-                                       get_async_client: Callable):
+    async def test_get_status_positive(
+            self,
+            mock_check_task_type: Mock,
+            get_async_client: Callable
+    ):
         url = URL_PATTERN.format(
             host=APP_HOST,
             port=APP_PORT,
@@ -145,9 +153,12 @@ class TestTask:
         ):
             reload(task)
             app.include_router(task.router)
-            app.dependency_overrides[
-                get_redis_storage
-            ] = dependency_mock.override_get_redis_storage
+
+            new_dependencies = {
+                get_redis_storage: dependency_mock.override_get_redis_storage
+            }
+            app.dependency_overrides.update(new_dependencies)
+
             response = await get_async_client(app=app).get(
                 url=url,
                 params=params
@@ -164,9 +175,11 @@ class TestTask:
     @pytest.mark.positive
     @patch('gstream.models.check_task_type')
     @pytest.mark.asyncio
-    async def test_load_input_args_positive(self,
-                                            mock_check_task_type: Mock,
-                                            get_async_client: Callable):
+    async def test_load_input_args_positive(
+            self,
+            mock_check_task_type: Mock,
+            get_async_client: Callable
+    ):
         mock_check_task_type.return_value = 'test-type'
 
         url = URL_PATTERN.format(
@@ -192,15 +205,12 @@ class TestTask:
             reload(task)
             app.include_router(task.router)
 
-            app.dependency_overrides[
-                get_redis_storage
-            ] = dependency_mock.override_get_redis_storage
-            app.dependency_overrides[
-                parse_body
-            ] = dependency_mock.override_parse_body
-            app.dependency_overrides[
-                get_file_storage
-            ] = dependency_mock.override_get_file_storage
+            new_dependencies = {
+                get_redis_storage: dependency_mock.override_get_redis_storage,
+                parse_body: DependencyMock.override_parse_body,
+                get_file_storage: DependencyMock.override_get_file_storage
+            }
+            app.dependency_overrides.update(new_dependencies)
 
             response = await get_async_client(app=app).post(
                 url=url,
@@ -232,7 +242,6 @@ class TestTask:
         params = {
             'task_id': 'task_id',
         }
-        dependency_mock = DependencyMock()
 
         app = FastAPI(root_path=ROOT_PATH)
         with patch(
@@ -241,17 +250,15 @@ class TestTask:
             reload(task)
             app.include_router(task.router)
 
-            app.dependency_overrides[
-                get_redis_storage
-            ] = dependency_mock.override_get_redis_storage
-            app.dependency_overrides[
-                parse_body
-            ] = dependency_mock.override_parse_body
-            app.dependency_overrides[
-                get_file_storage
-            ] = dependency_mock.override_get_file_storage
+            new_dependencies = {
+                get_redis_storage: DependencyMock().override_get_redis_storage,
+                parse_body: DependencyMock.override_parse_body,
+                get_file_storage: DependencyMock.override_get_file_storage
+            }
+            app.dependency_overrides.update(new_dependencies)
+
             mock_convert_megabytes_to_bytes.return_value = len(
-                await dependency_mock.override_parse_body()
+                await DependencyMock.override_parse_body()
             ) - 1
             response = await get_async_client(app=app).post(
                 url=url,
@@ -269,9 +276,11 @@ class TestTask:
     @pytest.mark.negative
     @patch('gstream.models.check_task_type')
     @pytest.mark.asyncio
-    async def test_load_input_args_wrong_status(self,
-                                                mock_check_task_type: Mock,
-                                                get_async_client: Callable):
+    async def test_load_input_args_wrong_status(
+            self,
+            mock_check_task_type: Mock,
+            get_async_client: Callable
+    ):
         mock_check_task_type.return_value = 'test-type'
 
         url = URL_PATTERN.format(
@@ -298,15 +307,12 @@ class TestTask:
             reload(task)
             app.include_router(task.router)
 
-            app.dependency_overrides[
-                get_redis_storage
-            ] = dependency_mock.override_get_redis_storage
-            app.dependency_overrides[
-                parse_body
-            ] = dependency_mock.override_parse_body
-            app.dependency_overrides[
-                get_file_storage
-            ] = dependency_mock.override_get_file_storage
+            new_dependencies = {
+                get_redis_storage: dependency_mock.override_get_redis_storage,
+                parse_body: DependencyMock.override_parse_body,
+                get_file_storage: DependencyMock.override_get_file_storage
+            }
+            app.dependency_overrides.update(new_dependencies)
 
             response = await get_async_client(app=app).post(
                 url=url,
@@ -324,9 +330,11 @@ class TestTask:
     @pytest.mark.positive
     @patch('gstream.models.check_task_type')
     @pytest.mark.asyncio
-    async def test_get_log_positive(self,
-                                    mock_check_task_type: Mock,
-                                    get_async_client: Callable):
+    async def test_get_log_positive(
+            self,
+            mock_check_task_type: Mock,
+            get_async_client: Callable
+    ):
         url = URL_PATTERN.format(
             host=APP_HOST,
             port=APP_PORT,
@@ -348,9 +356,12 @@ class TestTask:
         ):
             reload(task)
             app.include_router(task.router)
-            app.dependency_overrides[
-                get_redis_storage
-            ] = dependency_mock.override_get_redis_storage
+
+            new_dependencies = {
+                get_redis_storage: dependency_mock.override_get_redis_storage,
+            }
+            app.dependency_overrides.update(new_dependencies)
+
             response = await get_async_client(app=app).get(
                 url=url,
                 params=params
@@ -369,11 +380,13 @@ class TestTask:
     @patch.object(RedisStorage, 'get_task_state')
     @patch('gstream.models.check_task_type')
     @pytest.mark.asyncio
-    async def test_kill_task_positive(self,
-                                      mock_check_task_type: Mock,
-                                      mock_get_task_state: Mock,
-                                      mock_update_task_state: Mock,
-                                      get_async_client: Callable):
+    async def test_kill_task_positive(
+            self,
+            mock_check_task_type: Mock,
+            mock_get_task_state: Mock,
+            mock_update_task_state: Mock,
+            get_async_client: Callable
+    ):
         url = URL_PATTERN.format(
             host=APP_HOST,
             port=APP_PORT,
@@ -396,9 +409,11 @@ class TestTask:
             reload(task)
 
             app.include_router(task.router)
-            app.dependency_overrides[
-                get_redis_storage
-            ] = DependencyMock. override_get_redis_with_instance
+
+            new_dependencies = {
+                get_redis_storage: DependencyMock.override_redis_for_kill_task,
+            }
+            app.dependency_overrides.update(new_dependencies)
 
             response = await get_async_client(app=app).post(
                 url=url,

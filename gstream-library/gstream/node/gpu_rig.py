@@ -476,4 +476,4 @@ class GPURig:
             if gpu_card.memory_info.free_volume > required_memory_size:
                 return gpu_card
         else:
-            raise RuntimeError('All GPU card are busy now')
+            raise NoFreeGPUCardException('All GPU card are busy now')

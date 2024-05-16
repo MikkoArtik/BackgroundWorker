@@ -2,8 +2,10 @@ import json
 from datetime import datetime, timedelta
 from typing import List, Optional, Set, Union
 
-from gstream.models import DATETIME_FORMAT, TaskState, TaskStatus
+from gstream.models import TaskState, TaskStatus
 from redis.asyncio import ConnectionPool, Redis
+
+DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 
 def format_message(message: str) -> str:
@@ -219,6 +221,8 @@ class Storage:
             name=full_key,
             value=json.dumps(state.dict(by_alias=True))
         )
+        await self.__set_time_expiration(keys_pattern=full_key)
+
         await self.add_log_message(
             task_id=task_id,
             text='Task state was updated'

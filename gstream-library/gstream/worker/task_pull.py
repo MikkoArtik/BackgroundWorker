@@ -11,7 +11,7 @@ from gstream.storage.file_system import Storage as FileStorage
 from gstream.storage.redis import Storage as RedisStorage
 from psutil import STATUS_ZOMBIE, Process
 
-SLEEP_TIME_SECONDS = 10
+SLEEP_TIME_SECONDS = 0.1
 
 
 class TaskPull:
@@ -24,7 +24,7 @@ class TaskPull:
         self.__file_storage = file_storage
         self.__gpu_rig = GPURig()
 
-        self.__ready_pull = {}
+        self.__ready_pull = Queue()
         self.__kill_pull = Queue()
         self.__accepted_pull = Queue()
 
@@ -57,8 +57,12 @@ class TaskPull:
                 state = await self.redis_storage.get_task_state(
                     task_id=task_id
                 )
-                if state.is_need_kill:
-                    self.__kill_pull.put_nowait(task_id)
+                if state.status == TaskStatus.KILLED.value:
+                    continue
+                if not state.is_need_kill:
+                    continue
+
+                await self.__kill_pull.put(task_id)
             await asyncio.sleep(SLEEP_TIME_SECONDS)
 
     async def scan_ready_tasks(self):
@@ -70,11 +74,7 @@ class TaskPull:
                 if state.status != TaskStatus.READY.value:
                     continue
 
-                if state.type_ not in self.__ready_pull:
-                    self.__ready_pull[state.type_] = Queue()
-
-                self.__ready_pull[state.type_].put_nowait(task_id)
-
+                await self.__ready_pull.put(task_id)
             await asyncio.sleep(SLEEP_TIME_SECONDS)
 
     async def scan_accepted_tasks(self):
@@ -83,8 +83,10 @@ class TaskPull:
                 state = await self.redis_storage.get_task_state(
                     task_id=task_id
                 )
-                if state.is_accepted:
-                    self.__accepted_pull.put_nowait(task_id)
+                if not state.is_accepted:
+                    continue
+
+                await self.__accepted_pull.put(task_id)
             await asyncio.sleep(SLEEP_TIME_SECONDS)
 
     async def __kill_task(self, task_id: str):
@@ -103,6 +105,10 @@ class TaskPull:
                 task_id=task_id,
                 state=state
             )
+            await self.redis_storage.add_log_message(
+                task_id=task_id,
+                text='Task was killed'
+            )
             return
 
         try:
@@ -112,6 +118,10 @@ class TaskPull:
             await self.redis_storage.update_task_state(
                 task_id=task_id,
                 state=state
+            )
+            await self.redis_storage.add_log_message(
+                task_id=task_id,
+                text='Task was killed'
             )
             return
 
@@ -124,6 +134,10 @@ class TaskPull:
             await self.redis_storage.update_task_state(
                 task_id=task_id,
                 state=state
+            )
+            await self.redis_storage.add_log_message(
+                task_id=task_id,
+                text='Task was killed'
             )
 
     async def kill_tasks(self):
@@ -171,7 +185,7 @@ class TaskPull:
         return True
 
     async def __is_possible_run_task(self, task_id: str) -> bool:
-        if not self.__is_possible_run_any_task():
+        if not await self.__is_possible_run_any_task():
             return False
 
         try:
@@ -193,10 +207,15 @@ class TaskPull:
         return True
 
     async def __run_single_task(self, task_id: str):
-        if not self.__is_possible_run_task(task_id=task_id):
+        if not await self.__is_possible_run_task(task_id=task_id):
             return
 
         state = await self.redis_storage.get_task_state(task_id=task_id)
+        state.status = TaskStatus.RUNNING.value
+        await self.redis_storage.update_task_state(
+            task_id=task_id,
+            state=state
+        )
         script_full_path = Path(
             self.file_storage.root,
             state.script_filename
@@ -207,31 +226,20 @@ class TaskPull:
             close_fds=True
         )
         state.pid = proc.pid
-        state.status = TaskStatus.RUNNING.value
         await self.redis_storage.update_task_state(
             task_id=task_id,
             state=state
         )
 
-    async def run_tasks_block(self, task_type: str):
-        if task_type not in self.__ready_pull:
-            raise KeyError('Invalid task type')
-
+    async def run_tasks(self):
         while True:
-            queue = self.__ready_pull.get(task_type, Queue())
-            if queue.empty():
+            if not self.__ready_pull:
                 await asyncio.sleep(delay=SLEEP_TIME_SECONDS)
                 continue
 
-            task_id = await self.__accepted_pull.get()
-
+            task_id = await self.__ready_pull.get()
             await self.__run_single_task(task_id=task_id)
             await asyncio.sleep(delay=SLEEP_TIME_SECONDS)
-
-    async def run_tasks(self):
-        async with anyio.create_task_group() as group_ctx:
-            for task_type in self.__ready_pull.keys():
-                group_ctx.start_soon(self.run_tasks_block, task_type)
 
     async def run_pull(self):
         async with anyio.create_task_group() as group_ctx:
@@ -242,12 +250,3 @@ class TaskPull:
             group_ctx.start_soon(self.kill_tasks)
             group_ctx.start_soon(self.remove_tasks)
             group_ctx.start_soon(self.run_tasks)
-        # await asyncio.gather(
-        #     self.synchronize_file_storage_with_redis(),
-        #     self.scan_killing_tasks(),
-        #     self.scan_ready_tasks(),
-        #     self.scan_accepted_tasks(),
-        #     self.kill_tasks(),
-        #     self.remove_tasks(),
-        #     self.run_tasks()
-        # )

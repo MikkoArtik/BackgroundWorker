@@ -65,12 +65,12 @@ class DelaysFinder(GPUProcess):
 
         return [
             gpu_signals,
-            args.signals_length,
-            args.stations_count,
-            args.scanner_size,
-            args.window_size,
+            int(args.signals_length),
+            int(args.stations_count),
+            int(args.scanner_size),
+            int(args.window_size),
             float(args.min_correlation),
-            args.base_station_index,
+            int(args.base_station_index),
             gpu_solution
         ]
 
