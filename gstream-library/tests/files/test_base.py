@@ -10,8 +10,6 @@ from hamcrest import assert_that, equal_to, is_
 
 
 class TestBaseBinaryFileReader:
-    file_reader = BaseBinaryFileReader(path=Mock())
-
     @pytest.mark.positive
     def test_correct_attributes_positive(self):
         path = Mock()
@@ -24,7 +22,7 @@ class TestBaseBinaryFileReader:
         )
         assert_that(
             actual_or_assertion=file_reader._BaseBinaryFileReader__src_data,
-            matcher=equal_to(None)
+            matcher=is_(None)
         )
 
     @pytest.mark.negative
@@ -44,7 +42,9 @@ class TestBaseBinaryFileReader:
     @pytest.mark.asyncio
     async def test_convert_to_py_object_positive(self):
         assert_that(
-            actual_or_assertion=await self.file_reader.convert_to_py_object(),
+            actual_or_assertion=await BaseBinaryFileReader(
+                path=Mock()
+            ).convert_to_py_object(),
             matcher=is_(None)
         )
 
@@ -57,7 +57,9 @@ class TestBaseBinaryFileReader:
         mock_read.return_value = expected_value
 
         assert_that(
-            actual_or_assertion=await self.file_reader.src_data,
+            actual_or_assertion=await BaseBinaryFileReader(
+                path=Mock()
+            ).src_data,
             matcher=equal_to(expected_value)
         )
 
@@ -83,7 +85,6 @@ class TestBaseBinaryFileReader:
 
 
 class TestBaseBinaryFileWriter:
-    file_writer = BaseBinaryFileWriter(path=Mock(), data='test-data')
 
     @pytest.mark.positive
     @pytest.mark.asyncio
@@ -119,7 +120,10 @@ class TestBaseBinaryFileWriter:
     @pytest.mark.asyncio
     async def test_data_positive(self):
         assert_that(
-            actual_or_assertion=self.file_writer._data,
+            actual_or_assertion=BaseBinaryFileWriter(
+                path=Mock(),
+                data='test-data'
+            )._data,
             matcher=is_(None)
         )
 
@@ -127,7 +131,10 @@ class TestBaseBinaryFileWriter:
     @pytest.mark.asyncio
     async def test_convert_to_bytes_positive(self):
         assert_that(
-            actual_or_assertion=self.file_writer._convert_to_bytes(),
+            actual_or_assertion=BaseBinaryFileWriter(
+                path=Mock(),
+                data='test-data'
+            )._convert_to_bytes(),
             matcher=is_(None)
         )
 
@@ -140,10 +147,13 @@ class TestBaseBinaryFileWriter:
         mock_file.write.return_value = None
         mock_open.return_value.__aenter__.return_value = mock_file
 
-        await self.file_writer.save()
+        await BaseBinaryFileWriter(path=Mock(), data='test-data').save()
 
         mock_file.write.assert_called_once_with(
-            self.file_writer._convert_to_bytes()
+            BaseBinaryFileWriter(
+                path=Mock(),
+                data='test-data'
+            )._convert_to_bytes()
         )
 
 
