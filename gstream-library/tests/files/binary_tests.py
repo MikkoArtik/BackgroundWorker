@@ -1,7 +1,9 @@
 import pytest
 from hamcrest import assert_that, equal_to, is_
-from gstream.files.binary import CharType
-from typing import Union
+from gstream.files.binary import CharType, IntType, MIN_INT, MAX_INT
+from typing import Union, List
+import struct
+from unittest.mock import Mock, patch
 
 
 class TestCharType:
@@ -36,7 +38,10 @@ class TestCharType:
     @pytest.mark.positive
     @pytest.mark.parametrize(
         ['value', 'expected_value'],
-        [('w', 's'), ('test', '4s')]
+        [
+            ('w', CharType()._CharType__label),
+            ('test', f'4{CharType()._CharType__label}')
+        ]
     )
     def test_generate_format_string_positive(
             self,
@@ -66,4 +71,150 @@ class TestCharType:
         assert_that(
             actual_or_assertion=CharType().pack(obj=expected_value),
             matcher=equal_to(expected_value.encode())
+        )
+
+    @pytest.mark.positive
+    def test_unpack_positive(self):
+        expected_value = 'test'
+        assert_that(
+            actual_or_assertion=CharType().unpack(
+                value=expected_value.encode(),
+                symbols_count=len(expected_value)
+            ),
+            matcher=equal_to(expected_value)
+        )
+
+
+class TestIntType:
+
+    @pytest.mark.positive
+    def test_correct_attributes_positive(self):
+        char_type = IntType()
+        assert_that(
+            actual_or_assertion=char_type._IntType__label,
+            matcher=equal_to('i')
+        )
+        assert_that(
+            actual_or_assertion=char_type.byte_size,
+            matcher=equal_to(4)
+        )
+
+    @pytest.mark.positive
+    @pytest.mark.parametrize(
+        ['value', 'expected_value'],
+        [
+            (MIN_INT - 1, False),
+            (MIN_INT, True),
+            ((MIN_INT + MAX_INT) // 2, True),
+            (MAX_INT - 1, True),
+            (MAX_INT, True),
+            (MAX_INT + 1, False)
+        ]
+    )
+    def test_is_in_range_positive(self, value: int, expected_value: bool):
+        assert_that(
+            actual_or_assertion=IntType._IntType__is_in_range(value=value),
+            matcher=is_(expected_value)
+        )
+
+    @pytest.mark.positive
+    @pytest.mark.parametrize(
+        ['value', 'expected_value'],
+        [
+            ((MIN_INT + MAX_INT) // 2, True),
+            ([], False),
+            (['test'], False),
+            ([MIN_INT - 1], False),
+            ([(MIN_INT + MAX_INT) // 2], True),
+            ('test', False)
+        ]
+    )
+    def test_is_correct_value_positive(
+            self,
+            value: Union[str, int, List[Union[str, int]]],
+            expected_value: bool
+    ):
+        assert_that(
+            actual_or_assertion=IntType._is_correct_value(obj=value),
+            matcher=is_(expected_value)
+        )
+
+    @pytest.mark.positive
+    @pytest.mark.parametrize(
+        ['value', 'expected_value'],
+        [
+            ([(MIN_INT + MAX_INT) // 2], IntType()._IntType__label),
+            ([MIN_INT + 1, MIN_INT + 10], f'2{IntType()._IntType__label}'),
+            ((MIN_INT + MAX_INT) // 2, IntType()._IntType__label)
+        ]
+    )
+    def test_generate_format_string_positive(
+            self,
+            value: Union[List[int], int],
+            expected_value: str
+    ):
+        assert_that(
+            actual_or_assertion=IntType._generate_format_string(obj=value),
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.negative
+    def test_generate_format_string_negative(self):
+        with pytest.raises(ValueError) as error:
+            IntType._generate_format_string(obj='')
+
+            assert_that(
+                actual_or_assertion=error.value,
+                matcher=equal_to('Value has invalid type or empty')
+            )
+
+    @pytest.mark.positive
+    @patch('struct.pack')
+    @pytest.mark.parametrize(
+        'is_obj_list', [True, False]
+    )
+    def test_pack_positive(self, mock_pack: Mock, is_obj_list: bool):
+        if is_obj_list:
+            obj = 777
+
+        else:
+            obj = list(range(10))
+
+        expected_value = b'test'
+        mock_pack.return_value = expected_value
+
+        assert_that(
+            actual_or_assertion=IntType.pack(obj=obj),
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.positive
+    @patch('struct.unpack')
+    @pytest.mark.parametrize(
+        'is_return_list', [True, False]
+    )
+    def test_unpack_positive(self, mock_unpack: Mock,
+                             is_return_list: bool
+                             ):
+        if is_return_list:
+            numbers_count = 2
+            expected_value = [12, 34]
+            mock_unpack.return_value = expected_value
+
+        else:
+            numbers_count = 1
+            expected_value = 1234
+            mock_unpack.return_value = [expected_value]
+
+        fmt = f'{numbers_count}{IntType._IntType__label}'
+        value = b'test'
+        actual_value = IntType.unpack(
+            value=value,
+            numbers_count=numbers_count
+        )
+        mock_unpack.assert_called_once_with(fmt, value)
+
+        assert_that(
+            actual_or_assertion=actual_value,
+            matcher=equal_to(expected_value)
         )

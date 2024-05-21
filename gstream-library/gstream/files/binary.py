@@ -9,6 +9,7 @@ __all__ = [
     'IntType',
     'DoubleType'
 ]
+MIN_INT, MAX_INT = -2_000_000_000, 2_000_000_000
 
 
 @dataclass
@@ -98,7 +99,7 @@ class IntType:
         Returns: bool
 
         """
-        if value < -2_000_000_000 or value > 2_000_000_000:
+        if value < MIN_INT or MAX_INT < value:
             return False
         return True
 
@@ -121,9 +122,7 @@ class IntType:
             for item in obj:
                 if not isinstance(item, int):
                     return False
-                if not cls.__is_in_range(value=item):
-                    return False
-            return True
+                return cls.__is_in_range(value=item)
         else:
             return False
 
