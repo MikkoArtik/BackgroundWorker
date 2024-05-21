@@ -26,9 +26,7 @@ class CharType:
 
     @staticmethod
     def _is_correct_value(obj: str) -> bool:
-        if isinstance(obj, str):
-            if not obj:
-                return False
+        if isinstance(obj, str) and obj:
             return True
         return False
 
