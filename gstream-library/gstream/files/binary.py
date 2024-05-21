@@ -10,6 +10,7 @@ __all__ = [
     'DoubleType'
 ]
 MIN_INT, MAX_INT = -2_000_000_000, 2_000_000_000
+MIN_FLOAT, MAX_FLOAT = -1e14, 1e14
 
 
 @dataclass
@@ -122,7 +123,9 @@ class IntType:
             for item in obj:
                 if not isinstance(item, int):
                     return False
-                return cls.__is_in_range(value=item)
+                if not cls.__is_in_range(value=item):
+                    return False
+            return True
         else:
             return False
 
@@ -204,7 +207,7 @@ class DoubleType:
         Returns: bool
 
         """
-        if value < -1e14 or value > 1e14:
+        if value < MIN_FLOAT or MAX_FLOAT < value:
             return False
         return True
 

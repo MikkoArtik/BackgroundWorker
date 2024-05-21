@@ -1,9 +1,17 @@
-import pytest
-from hamcrest import assert_that, equal_to, is_
-from gstream.files.binary import CharType, IntType, MIN_INT, MAX_INT
-from typing import Union, List
-import struct
+from typing import List, Union
 from unittest.mock import Mock, patch
+
+import pytest
+from gstream.files.binary import (
+    MAX_FLOAT,
+    MAX_INT,
+    MIN_FLOAT,
+    MIN_INT,
+    CharType,
+    DoubleType,
+    IntType
+)
+from hamcrest import assert_that, equal_to, is_
 
 
 class TestCharType:
@@ -125,6 +133,7 @@ class TestIntType:
             ([], False),
             (['test'], False),
             ([MIN_INT - 1], False),
+            ([(MIN_INT + MAX_INT) // 2, 'test'], False),
             ([(MIN_INT + MAX_INT) // 2], True),
             ('test', False)
         ]
@@ -175,16 +184,18 @@ class TestIntType:
     )
     def test_pack_positive(self, mock_pack: Mock, is_obj_list: bool):
         if is_obj_list:
-            obj = 777
+            obj = list(range(10))
 
         else:
-            obj = list(range(10))
+            obj = 777
 
         expected_value = b'test'
         mock_pack.return_value = expected_value
+        actual_value = IntType.pack(obj=obj)
+        mock_pack.assert_called_once()
 
         assert_that(
-            actual_or_assertion=IntType.pack(obj=obj),
+            actual_or_assertion=actual_value,
             matcher=equal_to(expected_value)
         )
 
@@ -193,9 +204,7 @@ class TestIntType:
     @pytest.mark.parametrize(
         'is_return_list', [True, False]
     )
-    def test_unpack_positive(self, mock_unpack: Mock,
-                             is_return_list: bool
-                             ):
+    def test_unpack_positive(self, mock_unpack: Mock, is_return_list: bool):
         if is_return_list:
             numbers_count = 2
             expected_value = [12, 34]
@@ -209,6 +218,147 @@ class TestIntType:
         fmt = f'{numbers_count}{IntType._IntType__label}'
         value = b'test'
         actual_value = IntType.unpack(
+            value=value,
+            numbers_count=numbers_count
+        )
+        mock_unpack.assert_called_once_with(fmt, value)
+
+        assert_that(
+            actual_or_assertion=actual_value,
+            matcher=equal_to(expected_value)
+        )
+
+
+class TestDoubleType:
+
+    @pytest.mark.positive
+    def test_correct_attributes_positive(self):
+        double_type = DoubleType()
+        assert_that(
+            actual_or_assertion=double_type._DoubleType__label,
+            matcher=equal_to('d')
+        )
+        assert_that(
+            actual_or_assertion=double_type.byte_size,
+            matcher=equal_to(8)
+        )
+
+    @pytest.mark.positive
+    @pytest.mark.parametrize(
+        ['value', 'expected_value'],
+        [
+            (MIN_FLOAT - 1, False),
+            (MIN_FLOAT, True),
+            ((MIN_FLOAT + MAX_FLOAT) / 2, True),
+            (MAX_FLOAT - 1, True),
+            (MAX_FLOAT, True),
+            (MAX_FLOAT + 1, False)
+        ]
+    )
+    def test_is_in_range_positive(self, value: int, expected_value: bool):
+        assert_that(
+            actual_or_assertion=DoubleType._DoubleType__is_in_range(
+                value=value
+            ),
+            matcher=is_(expected_value)
+        )
+
+    @pytest.mark.positive
+    @pytest.mark.parametrize(
+        ['value', 'expected_value'],
+        [
+            ((MIN_FLOAT + MAX_FLOAT) / 2, True),
+            ([], False),
+            (['test'], False),
+            ([MIN_FLOAT - 1], False),
+            ([(MIN_FLOAT + MAX_FLOAT) / 2, 'test'], False),
+            ([(MIN_FLOAT + MAX_FLOAT) / 2], True),
+            ('test', False)
+        ]
+    )
+    def test_is_correct_value_positive(
+            self,
+            value: Union[str, int, List[Union[str, int]]],
+            expected_value: bool
+    ):
+        assert_that(
+            actual_or_assertion=DoubleType._is_correct_value(obj=value),
+            matcher=is_(expected_value)
+        )
+
+    @pytest.mark.positive
+    @pytest.mark.parametrize(
+        ['value', 'expected_value'],
+        [
+            ([(MIN_FLOAT + MAX_FLOAT) // 2], DoubleType()._DoubleType__label),
+            (
+                [MIN_FLOAT + 1, MIN_FLOAT + 10],
+                f'2{DoubleType()._DoubleType__label}'
+            ),
+            ((MIN_FLOAT + MAX_FLOAT) // 2, DoubleType()._DoubleType__label)
+        ]
+    )
+    def test_generate_format_string_positive(
+            self,
+            value: Union[List[int], int],
+            expected_value: str
+    ):
+        assert_that(
+            actual_or_assertion=DoubleType._generate_format_string(obj=value),
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.negative
+    def test_generate_format_string_negative(self):
+        with pytest.raises(ValueError) as error:
+            DoubleType._generate_format_string(obj='')
+
+            assert_that(
+                actual_or_assertion=error.value,
+                matcher=equal_to('Value has invalid type or empty')
+            )
+
+    @pytest.mark.positive
+    @patch('struct.pack')
+    @pytest.mark.parametrize(
+        'is_obj_list', [True, False]
+    )
+    def test_pack_positive(self, mock_pack: Mock, is_obj_list: bool):
+        if is_obj_list:
+            obj = [i / 2 for i in range(10)]
+
+        else:
+            obj = 77.7
+
+        expected_value = b'test'
+        mock_pack.return_value = expected_value
+        actual_value = DoubleType.pack(obj=obj)
+        mock_pack.assert_called_once()
+
+        assert_that(
+            actual_or_assertion=actual_value,
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.positive
+    @patch('struct.unpack')
+    @pytest.mark.parametrize(
+        'is_return_list', [True, False]
+    )
+    def test_unpack_positive(self, mock_unpack: Mock, is_return_list: bool):
+        if is_return_list:
+            numbers_count = 2
+            expected_value = [12, 34]
+            mock_unpack.return_value = expected_value
+
+        else:
+            numbers_count = 1
+            expected_value = 1234
+            mock_unpack.return_value = [expected_value]
+
+        fmt = f'{numbers_count}{DoubleType._DoubleType__label}'
+        value = b'test'
+        actual_value = DoubleType.unpack(
             value=value,
             numbers_count=numbers_count
         )
