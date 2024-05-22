@@ -97,13 +97,13 @@ class TestIntType:
 
     @pytest.mark.positive
     def test_correct_attributes_positive(self):
-        char_type = IntType()
+        int_type = IntType()
         assert_that(
-            actual_or_assertion=char_type._IntType__label,
+            actual_or_assertion=int_type._IntType__label,
             matcher=equal_to('i')
         )
         assert_that(
-            actual_or_assertion=char_type.byte_size,
+            actual_or_assertion=int_type.byte_size,
             matcher=equal_to(4)
         )
 
@@ -114,6 +114,7 @@ class TestIntType:
             (MIN_INT - 1, False),
             (MIN_INT, True),
             ((MIN_INT + MAX_INT) // 2, True),
+            ((MIN_INT + MAX_INT) / 2, True),
             (MAX_INT - 1, True),
             (MAX_INT, True),
             (MAX_INT + 1, False)
@@ -130,10 +131,12 @@ class TestIntType:
         ['value', 'expected_value'],
         [
             ((MIN_INT + MAX_INT) // 2, True),
+            ((MIN_INT + MAX_INT) / 2, False),
             ([], False),
             (['test'], False),
             ([MIN_INT - 1], False),
             ([(MIN_INT + MAX_INT) // 2, 'test'], False),
+            ([(MIN_INT + MAX_INT) // 2, (MIN_INT + MAX_INT) / 2], False),
             ([(MIN_INT + MAX_INT) // 2], True),
             ('test', False)
         ]
@@ -250,6 +253,7 @@ class TestDoubleType:
             (MIN_FLOAT - 1, False),
             (MIN_FLOAT, True),
             ((MIN_FLOAT + MAX_FLOAT) / 2, True),
+            ((MIN_FLOAT + MAX_FLOAT) // 2, True),
             (MAX_FLOAT - 1, True),
             (MAX_FLOAT, True),
             (MAX_FLOAT + 1, False)
@@ -268,10 +272,15 @@ class TestDoubleType:
         ['value', 'expected_value'],
         [
             ((MIN_FLOAT + MAX_FLOAT) / 2, True),
+            ((MIN_FLOAT + MAX_FLOAT) // 2, True),
             ([], False),
             (['test'], False),
             ([MIN_FLOAT - 1], False),
             ([(MIN_FLOAT + MAX_FLOAT) / 2, 'test'], False),
+            (
+                [(MIN_FLOAT + MAX_FLOAT) / 2, (MIN_FLOAT + MAX_FLOAT) // 2],
+                True
+            ),
             ([(MIN_FLOAT + MAX_FLOAT) / 2], True),
             ('test', False)
         ]
