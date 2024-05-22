@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import numpy as np
+
 from gstream.files.writers import DelaysFinderResultBinaryFile
 from gstream.models import Array, ArraySize, ArrayType, DelaysFinderParameters
 from gstream.node.gpu_task import GPUArray, GPUTask

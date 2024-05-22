@@ -6,9 +6,6 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 import pytest
 from dotenv import load_dotenv
 from fastapi import FastAPI, status
-from gstream.models import TaskState
-from gstream.storage.file_system import Storage as FileStorage
-from gstream.storage.redis import Storage as RedisStorage
 from hamcrest import assert_that, equal_to
 
 from background_app.routers import task
@@ -18,6 +15,9 @@ from background_app.routers.dependencies import (
     parse_body
 )
 from background_app_tests.helpers import DependencyMock, mock_decorator
+from gstream.models import TaskState
+from gstream.storage.file_system import Storage as FileStorage
+from gstream.storage.redis import Storage as RedisStorage
 
 load_dotenv()
 APP_HOST = os.getenv('APP_HOST')

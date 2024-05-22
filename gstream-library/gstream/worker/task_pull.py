@@ -5,11 +5,12 @@ from pathlib import Path
 
 import anyio
 import psutil
+from psutil import STATUS_ZOMBIE, Process
+
 from gstream.models import TaskStatus
 from gstream.node.gpu_rig import GPURig
 from gstream.storage.file_system import Storage as FileStorage
 from gstream.storage.redis import Storage as RedisStorage
-from psutil import STATUS_ZOMBIE, Process
 
 SLEEP_TIME_SECONDS = 0.1
 

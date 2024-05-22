@@ -2,8 +2,9 @@ import sys
 from pathlib import Path
 from typing import List, Optional, Union
 
-import gstream
 import numpy as np
+
+import gstream
 from gstream.models import TaskState, TaskStatus
 from gstream.node.gpu_rig import (
     GPUCard,

@@ -7,6 +7,8 @@ from time import time
 from typing import Tuple
 
 import numpy as np
+from pydantic import BaseModel, Field, root_validator, validator
+
 from gstream.core_models import (
     ObservationSystem,
     Range,
@@ -15,7 +17,6 @@ from gstream.core_models import (
     Spacing
 )
 from gstream.files.binary import CharType, DoubleType, IntType
-from pydantic import BaseModel, Field, root_validator, validator
 
 
 class TaskType(Enum):

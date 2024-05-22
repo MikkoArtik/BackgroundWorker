@@ -4,6 +4,7 @@ from functools import wraps
 from typing import Callable
 
 from fastapi import HTTPException, status
+
 from gstream.models import TaskStatus
 from gstream.storage.file_system import Storage as FileStorage
 from gstream.storage.redis import Storage as RedisStorage

@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import List, Tuple, Union
 
 import pyopencl as cl
+
 from gstream.node.common import MemoryInfo, convert_megabytes_to_bytes
 
 MEMORY_FILE_STATS = Path('/proc/meminfo')
