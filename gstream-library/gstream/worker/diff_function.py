@@ -2,6 +2,7 @@ from math import inf as INF
 from typing import List, Tuple, Union
 
 import numpy as np
+
 from gstream.models import DiffFunctionParameters
 from gstream.node.gpu_task import GPUArray, GPUTask
 from gstream.storage.file_system import Storage as FileStorage

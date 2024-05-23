@@ -5,6 +5,7 @@ from typing import List, Union
 
 import numpy as np
 import pyopencl as cl
+
 from gstream.node.gpu_rig import GPUCard, NoFreeGPUCardException
 
 __all__ = [

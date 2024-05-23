@@ -30,7 +30,7 @@ class DelaysFinderArgsBinaryFile(BaseBinaryFileWriter):
         Returns: DelaysFinderParameters
 
         """
-        return self._BaseFileWriter__data
+        return self._BaseBinaryFileWriter__data
 
     def _convert_to_bytes(self) -> bytes:
         """Convert python object to bytes.

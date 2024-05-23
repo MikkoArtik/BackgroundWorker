@@ -1,12 +1,13 @@
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from hamcrest import assert_that, equal_to, is_
+
 from gstream.files.base import (
     BaseBinaryFileReader,
     BaseBinaryFileWriter,
     BaseTxtFileWriter
 )
-from hamcrest import assert_that, equal_to, is_
 
 
 class TestBaseBinaryFileReader:

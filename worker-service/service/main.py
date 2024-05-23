@@ -3,10 +3,11 @@ import os
 from pathlib import Path
 
 import dotenv
+from redis.asyncio import ConnectionPool
+
 from gstream.storage.file_system import Storage as FileStorage
 from gstream.storage.redis import Storage as RedisStorage
 from gstream.worker.task_pull import TaskPull
-from redis.asyncio import ConnectionPool
 
 dotenv.load_dotenv()
 

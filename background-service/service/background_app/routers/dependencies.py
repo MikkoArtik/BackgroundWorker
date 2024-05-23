@@ -4,10 +4,10 @@ import os
 from pathlib import Path
 
 from fastapi import Request
-from gstream.storage.file_system import Storage as FileStorage
-from gstream.storage.redis import Storage as RedisStorage
 
 from background_app.library.redis import pool
+from gstream.storage.file_system import Storage as FileStorage
+from gstream.storage.redis import Storage as RedisStorage
 
 __all__ = [
     'get_redis_storage',
