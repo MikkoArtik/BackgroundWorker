@@ -9,6 +9,8 @@ __all__ = [
     'IntType',
     'DoubleType'
 ]
+MIN_INT, MAX_INT = -2_000_000_000, 2_000_000_000
+MIN_FLOAT, MAX_FLOAT = -1e14, 1e14
 
 
 @dataclass
@@ -26,9 +28,7 @@ class CharType:
 
     @staticmethod
     def _is_correct_value(obj: str) -> bool:
-        if isinstance(obj, str):
-            if not obj:
-                return False
+        if isinstance(obj, str) and obj:
             return True
         return False
 
@@ -100,7 +100,7 @@ class IntType:
         Returns: bool
 
         """
-        if value < -2_000_000_000 or value > 2_000_000_000:
+        if value < MIN_INT or MAX_INT < value:
             return False
         return True
 
@@ -207,7 +207,7 @@ class DoubleType:
         Returns: bool
 
         """
-        if value < -1e14 or value > 1e14:
+        if value < MIN_FLOAT or MAX_FLOAT < value:
             return False
         return True
 
