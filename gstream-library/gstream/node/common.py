@@ -22,6 +22,9 @@ def convert_megabytes_to_bytes(value: int) -> int:
     Returns: int
 
     """
+    if value < 0:
+        raise ValueError('Value can`t be negative')
+
     return value * 1024 ** 2
 
 
