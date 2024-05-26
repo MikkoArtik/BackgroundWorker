@@ -2,6 +2,8 @@ from typing import List, Union
 from unittest.mock import Mock, patch
 
 import pytest
+from hamcrest import assert_that, equal_to, is_
+
 from gstream.files.binary import (
     MAX_FLOAT,
     MAX_INT,
@@ -11,7 +13,6 @@ from gstream.files.binary import (
     DoubleType,
     IntType
 )
-from hamcrest import assert_that, equal_to, is_
 
 
 class TestCharType:
