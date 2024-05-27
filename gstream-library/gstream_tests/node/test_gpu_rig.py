@@ -1,4 +1,5 @@
-from unittest.mock import Mock, patch
+from typing import List
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from hamcrest import assert_that, equal_to, is_
@@ -73,6 +74,80 @@ class TestGPURigInfo:
         )
 
     @pytest.mark.positive
+    @pytest.mark.parametrize(
+        ['line', 'expected_value'],
+        [
+            (
+                '123, test:2, 10, 0, 100',
+                [
+                    GPUCardInfo(
+                        uuid='123',
+                        bus_id=2,
+                        memory=MemoryInfo(
+                            total_volume=103809024,
+                            used_volume=11534336
+                        )
+                    )
+                ]
+            ),
+            (
+                '123, test:2, 10, 0, 100\n123, test:3, 1, 0, 90',
+                [
+                    GPUCardInfo(
+                        uuid='123',
+                        bus_id=2,
+                        memory=MemoryInfo(
+                            total_volume=103809024,
+                            used_volume=11534336
+                        )
+                    ),
+                    GPUCardInfo(
+                        uuid='123',
+                        bus_id=3,
+                        memory=MemoryInfo(
+                            total_volume=93323264,
+                            used_volume=2097152
+                        )
+                    )
+                ]
+            ),
+            (
+                '123, test:2, 10, 0, 100\ntest\n123, test:1, 2, 0, 50',
+                [
+                    GPUCardInfo(
+                        uuid='123',
+                        bus_id=2,
+                        memory=MemoryInfo(
+                            total_volume=103809024,
+                            used_volume=11534336
+                        )
+                    ),
+                    GPUCardInfo(
+                        uuid='123',
+                        bus_id=1,
+                        memory=MemoryInfo(
+                            total_volume=51380224,
+                            used_volume=3145728
+                        )
+                    )
+                ]
+            )
+        ]
+    )
+    @patch('subprocess.Popen')
+    def test_get_gpu_cards_info_positive(
+            self,
+            mock_popen: Mock,
+            line: str,
+            expected_value: List[GPUCardInfo]
+    ):
+        mock_popen.return_value.communicate.return_value = line.encode(), None
+        assert_that(
+            actual_or_assertion=GPURigInfo()._GPURigInfo__get_gpu_cards_info(),
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.positive
     @patch.object(GPURigInfo, '_GPURigInfo__get_gpu_cards_info')
     def test_gpu_cards_info_positive(self, mock_get_gpu_cards_info: Mock):
         expected_value = 'test-info'
@@ -84,12 +159,12 @@ class TestGPURigInfo:
         )
 
     @pytest.mark.positive
-    @patch('os')
-    def test_hostname_positive(self, mock_os: Mock):
-        expected_value = 'test-nodename'
-        mock_os.uname.return_value = Mock(nodename=expected_value)
+    @patch('os.uname')
+    def test_hostname_positive(self, mock_nodename: Mock):
+        expected_value = 'test-node'
+        mock_nodename.return_value = MagicMock(nodename=expected_value)
 
         assert_that(
-            actual_or_assertion=GPURigInfo.hostname,
+            actual_or_assertion=GPURigInfo().hostname,
             matcher=equal_to(expected_value)
         )
