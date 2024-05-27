@@ -1,11 +1,18 @@
-from typing import List
-from unittest.mock import MagicMock, Mock, patch
+import pathlib
+from typing import List, Union
+from unittest.mock import MagicMock, Mock, PropertyMock, patch
 
 import pytest
 from hamcrest import assert_that, equal_to, is_
 
 from gstream.node.common import MemoryInfo, convert_megabytes_to_bytes
-from gstream.node.gpu_rig import GPUCardInfo, GPURigInfo
+from gstream.node.gpu_rig import (
+    FREE_MEMORY_SIZE_KEY,
+    MEMORY_SIZE_UNIT_IN_BYTES,
+    TOTAL_MEMORY_SIZE_KEY,
+    GPUCardInfo,
+    GPURigInfo
+)
 
 
 class TestGPUCardInfo:
@@ -35,10 +42,8 @@ class TestGPURigInfo:
 
     @pytest.mark.positive
     def test_parse_line_positive(self):
-        uuid = 'test-uuid'
-        bus_id = 7
-        used_memory = 10
-        total_memory = 100
+        uuid, bus_id = 'test-uuid', 7
+        used_memory, total_memory = 10, 100
 
         line = f'{uuid}, test:{bus_id}, {used_memory}, 0, {total_memory}'
         expected_value = GPUCardInfo(
@@ -148,6 +153,23 @@ class TestGPURigInfo:
         )
 
     @pytest.mark.positive
+    @pytest.mark.parametrize(
+        'error', [OSError, ValueError]
+    )
+    @patch('subprocess.Popen')
+    def test_get_empty_gpu_cards_info_positive(
+            self,
+            mock_popen: Mock,
+            error: Union[OSError, ValueError]
+    ):
+        mock_popen.return_value.communicate.side_effect = error
+
+        assert_that(
+            actual_or_assertion=GPURigInfo()._GPURigInfo__get_gpu_cards_info(),
+            matcher=equal_to([])
+        )
+
+    @pytest.mark.positive
     @patch.object(GPURigInfo, '_GPURigInfo__get_gpu_cards_info')
     def test_gpu_cards_info_positive(self, mock_get_gpu_cards_info: Mock):
         expected_value = 'test-info'
@@ -167,4 +189,62 @@ class TestGPURigInfo:
         assert_that(
             actual_or_assertion=GPURigInfo().hostname,
             matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.positive
+    @patch.object(pathlib.Path, 'open')
+    def test_ram_memory_info_positive(self, mock_open: Mock):
+        total_memory, free_memory = 10, 1
+        memory_file = [
+            f'{TOTAL_MEMORY_SIZE_KEY} {total_memory}\n',
+            f'{FREE_MEMORY_SIZE_KEY} {free_memory}'
+        ]
+        mock_open.return_value.__enter__.return_value = memory_file
+        total_volume = total_memory * MEMORY_SIZE_UNIT_IN_BYTES
+
+        assert_that(
+            actual_or_assertion=GPURigInfo().ram_memory_info,
+            matcher=equal_to(
+                MemoryInfo(
+                    total_volume=total_volume,
+                    used_volume=total_volume - (
+                        free_memory * MEMORY_SIZE_UNIT_IN_BYTES
+                    )
+                )
+            )
+        )
+
+    @pytest.mark.negative
+    @patch.object(pathlib.Path, 'exists')
+    def test_ram_memory_info_negative(self, mock_exists: Mock):
+        mock_exists.return_value = None
+
+        with pytest.raises(OSError) as error:
+            GPURigInfo().ram_memory_info()
+
+            assert_that(
+                actual_or_assertion=error.value,
+                matcher=equal_to('Meminfo file not found')
+            )
+
+    @pytest.mark.positive
+    @patch('os.cpu_count')
+    def test_cpu_cores_count_positive(self, mock_cpu_count: Mock):
+        expected_value = 777
+        mock_cpu_count.return_value = expected_value
+
+        assert_that(
+            actual_or_assertion=GPURigInfo().cpu_cores_count,
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.positive
+    @patch.object(GPURigInfo, 'gpu_cards_info', new_callable=PropertyMock)
+    def test_gpu_cards_count_positive(self, mock_gpu_cards_info: Mock):
+        gpu_cards_info = ['test-info']
+        mock_gpu_cards_info.return_value = len(gpu_cards_info)
+
+        assert_that(
+            actual_or_assertion=GPURigInfo().gpu_cards_info,
+            matcher=equal_to(len(gpu_cards_info))
         )

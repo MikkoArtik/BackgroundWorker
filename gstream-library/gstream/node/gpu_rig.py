@@ -157,7 +157,7 @@ class GPURigInfo:
 
         """
         if not MEMORY_FILE_STATS.exists():
-            raise OSError('meminfo file not found')
+            raise OSError('Meminfo file not found')
 
         total_memory, free_memory = 0, 0
         with MEMORY_FILE_STATS.open() as f:
