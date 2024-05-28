@@ -1,7 +1,9 @@
+import logging
 import pathlib
 from typing import List, Union
 from unittest.mock import MagicMock, Mock, PropertyMock, patch
 
+import pyopencl
 import pytest
 from hamcrest import assert_that, equal_to, is_
 
@@ -11,7 +13,7 @@ from gstream.node.gpu_rig import (
     MEMORY_SIZE_UNIT_IN_BYTES,
     TOTAL_MEMORY_SIZE_KEY,
     GPUCardInfo,
-    GPURigInfo
+    GPURigInfo, GPUCard, BusIdNotFound
 )
 
 
@@ -247,4 +249,315 @@ class TestGPURigInfo:
         assert_that(
             actual_or_assertion=GPURigInfo().gpu_cards_info,
             matcher=equal_to(len(gpu_cards_info))
+        )
+
+
+class TestGPUCard:
+
+    @pytest.mark.positive
+    @patch('pyopencl.CommandQueue')
+    @patch('pyopencl.Context')
+    @patch.object(GPUCard, '_GPUCard__get_bus_id_and_uuid')
+    def test_cl_gpu_device_positive(
+            self,
+            mock_get_bus_id_and_uuid: Mock,
+            mock_context: Mock,
+            mock_queue: Mock
+    ):
+        expected_value = 'test-device'
+        mock_get_bus_id_and_uuid.return_value = ('test-bus', 'test-uuid')
+        mock_context.return_value = Mock()
+        mock_queue.return_value = Mock()
+
+        assert_that(
+            actual_or_assertion=GPUCard(
+                cl_gpu_device=expected_value
+            ).cl_gpu_device,
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.positive
+    @patch.object(GPUCard, 'cl_gpu_device', new_callable=PropertyMock)
+    @patch.object(GPURigInfo, 'gpu_cards_info', new_callable=PropertyMock)
+    @patch.object(GPUCard, '__init__')
+    def test_get_bus_id_and_uuid_positive(
+            self,
+            mock_init: Mock,
+            mock_gpu_cards_info: Mock,
+            mock_cl_gpu_device: Mock
+    ):
+        mock_init.return_value = None
+        cl_bus_id = 'test-bus-id'
+        uuid = 'test-uuid'
+        gpu_cards_info = [Mock(bus_id=cl_bus_id, uuid=uuid)]
+        mock_gpu_cards_info.return_value = gpu_cards_info
+        mock_cl_gpu_device.return_value = Mock(pci_bus_id_nv=cl_bus_id)
+
+        assert_that(
+            actual_or_assertion=GPUCard(
+                cl_gpu_device=Mock()
+            )._GPUCard__get_bus_id_and_uuid(),
+            matcher=equal_to((cl_bus_id, uuid))
+        )
+
+    @pytest.mark.negative
+    @pytest.mark.parametrize(
+        ['is_absent_gpu_device', 'is_absent_bus_id'],
+        [(True, False), (False, True)]
+    )
+    @patch.object(GPUCard, 'cl_gpu_device', new_callable=PropertyMock)
+    @patch.object(GPURigInfo, 'gpu_cards_info', new_callable=PropertyMock)
+    @patch.object(GPUCard, '__init__')
+    def test_get_bus_id_and_uuid_negative(
+            self,
+            mock_init: Mock,
+            mock_gpu_cards_info: Mock,
+            mock_cl_gpu_device: Mock,
+            is_absent_bus_id: bool,
+            is_absent_gpu_device: bool
+    ):
+        mock_init.return_value = None
+        uuid = 'test-uuid'
+
+        if is_absent_gpu_device:
+            gpu_cards_info = None
+            expected_value = 'No GPU devices'
+
+        if is_absent_bus_id:
+            cl_bus_id = 'test-bus-id'
+            gpu_cards_info = [Mock(bus_id='test-bus-id', uuid=uuid)]
+            expected_value = f'CL Device bus id {cl_bus_id} not found'
+
+        mock_gpu_cards_info.return_value = gpu_cards_info
+        mock_cl_gpu_device.return_value = Mock(pci_bus_id_nv='other-bus-id')
+
+        with pytest.raises(BusIdNotFound) as error:
+            GPUCard(cl_gpu_device=Mock())._GPUCard__get_bus_id_and_uuid()
+
+            assert_that(
+                actual_or_assertion=error.value,
+                matcher=equal_to(expected_value)
+            )
+
+    @pytest.mark.positive
+    @patch('pyopencl.CommandQueue')
+    @patch('pyopencl.Context')
+    @patch.object(GPUCard, '_GPUCard__get_bus_id_and_uuid')
+    def test_eq_positive(
+            self,
+            mock_get_bus_id_and_uuid: Mock,
+            mock_context: Mock,
+            mock_queue: Mock
+    ):
+        uuid = 'test-uuid'
+        mock_get_bus_id_and_uuid.return_value = ('test-bus', uuid)
+        mock_context.return_value = Mock()
+        mock_queue.return_value = Mock()
+
+        obj = GPUCard(cl_gpu_device=Mock())
+        other_obj = GPUCard(cl_gpu_device=Mock())
+
+        assert_that(
+            actual_or_assertion=obj == other_obj,
+            matcher=is_(True)
+        )
+
+    @pytest.mark.positive
+    @patch('pyopencl.CommandQueue')
+    @patch('pyopencl.Context')
+    @patch.object(GPUCard, '_GPUCard__get_bus_id_and_uuid')
+    def test_ne_positive(
+            self,
+            mock_get_bus_id_and_uuid: Mock,
+            mock_context: Mock,
+            mock_queue: Mock
+    ):
+        uuid = 'test-uuid'
+        mock_get_bus_id_and_uuid.return_value = ('test-bus', uuid)
+        mock_context.return_value = Mock()
+        mock_queue.return_value = Mock()
+
+        obj = GPUCard(cl_gpu_device=Mock())
+        other_obj = GPUCard(cl_gpu_device=Mock())
+        other_obj._GPUCard__uuid = 'other-test-uuid'
+
+        assert_that(
+            actual_or_assertion=obj != other_obj,
+            matcher=is_(True)
+        )
+
+    @pytest.mark.positive
+    @patch('pyopencl.CommandQueue')
+    @patch('pyopencl.Context')
+    @patch.object(GPUCard, '_GPUCard__get_bus_id_and_uuid')
+    @patch('logging.getLogger')
+    def test_logger_positive(
+            self,
+            mock_logger: Mock,
+            mock_get_bus_id_and_uuid: Mock,
+            mock_context: Mock,
+            mock_queue: Mock,
+    ):
+        expected_value = Mock()
+        mock_logger.return_value = expected_value
+        mock_logger.return_value.debug.return_value = None
+        mock_get_bus_id_and_uuid.return_value = ('test-bus', 'test-uuid')
+        mock_context.return_value = Mock()
+        mock_queue.return_value = Mock()
+
+        assert_that(
+            actual_or_assertion=GPUCard(cl_gpu_device=Mock()).logger,
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.positive
+    @patch('pyopencl.CommandQueue')
+    @patch('pyopencl.Context')
+    @patch.object(GPUCard, '_GPUCard__get_bus_id_and_uuid')
+    def test_bus_id_positive(
+            self,
+            mock_get_bus_id_and_uuid: Mock,
+            mock_context: Mock,
+            mock_queue: Mock
+    ):
+        expected_value = 'test-bus-id'
+        mock_get_bus_id_and_uuid.return_value = (expected_value, 'test-uuid')
+        mock_context.return_value = Mock()
+        mock_queue.return_value = Mock()
+
+        assert_that(
+            actual_or_assertion=GPUCard(cl_gpu_device=Mock()).bus_id,
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.positive
+    @patch('pyopencl.CommandQueue')
+    @patch('pyopencl.Context')
+    @patch.object(GPUCard, '_GPUCard__get_bus_id_and_uuid')
+    def test_uuid_positive(
+            self,
+            mock_get_bus_id_and_uuid: Mock,
+            mock_context: Mock,
+            mock_queue: Mock
+    ):
+        expected_value = 'test-uuid'
+        mock_get_bus_id_and_uuid.return_value = ('test-bus-id', expected_value)
+        mock_context.return_value = Mock()
+        mock_queue.return_value = Mock()
+
+        assert_that(
+            actual_or_assertion=GPUCard(cl_gpu_device=Mock()).uuid,
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.positive
+    @patch('pyopencl.CommandQueue')
+    @patch('pyopencl.Context')
+    @patch.object(GPUCard, '_GPUCard__get_bus_id_and_uuid')
+    def test_cl_context_positive(
+            self,
+            mock_get_bus_id_and_uuid: Mock,
+            mock_context: Mock,
+            mock_queue: Mock
+    ):
+        expected_value = 'test-cl-context'
+        mock_get_bus_id_and_uuid.return_value = ('test-bus-id', 'test-uuid')
+        mock_context.return_value = expected_value
+        mock_queue.return_value = Mock()
+
+        assert_that(
+            actual_or_assertion=GPUCard(cl_gpu_device=Mock()).cl_context,
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.positive
+    @patch('pyopencl.CommandQueue')
+    @patch('pyopencl.Context')
+    @patch.object(GPUCard, '_GPUCard__get_bus_id_and_uuid')
+    def test_cl_queue_positive(
+            self,
+            mock_get_bus_id_and_uuid: Mock,
+            mock_context: Mock,
+            mock_queue: Mock
+    ):
+        expected_value = 'test-cl-queue'
+        mock_get_bus_id_and_uuid.return_value = ('test-bus-id', 'test-uuid')
+        mock_context.return_value = Mock()
+        mock_queue.return_value = expected_value
+
+        assert_that(
+            actual_or_assertion=GPUCard(cl_gpu_device=Mock()).cl_queue,
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.positive
+    @patch.object(pyopencl.Program, 'build')
+    @patch('pyopencl.CommandQueue')
+    @patch('pyopencl.Context')
+    @patch.object(GPUCard, '_GPUCard__get_bus_id_and_uuid')
+    def test_cl_queue_positive(
+            self,
+            mock_get_bus_id_and_uuid: Mock,
+            mock_context: Mock,
+            mock_queue: Mock,
+            mock_build: Mock
+    ):
+        mock_get_bus_id_and_uuid.return_value = ('test-bus-id', 'test-uuid')
+        mock_context.return_value = Mock()
+        mock_queue.return_value = Mock()
+
+        expected_value = 'test'
+        mock_build.return_value = expected_value
+
+        assert_that(
+            actual_or_assertion=GPUCard(cl_gpu_device=Mock()).compile_cl_core(core='test-core'),
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.negative
+    @patch.object(pyopencl.Program, 'build')
+    @patch('pyopencl.CommandQueue')
+    @patch('pyopencl.Context')
+    @patch.object(GPUCard, '_GPUCard__get_bus_id_and_uuid')
+    def test_cl_queue_negative(
+            self,
+            mock_get_bus_id_and_uuid: Mock,
+            mock_context: Mock,
+            mock_queue: Mock,
+            mock_build: Mock
+    ):
+        mock_get_bus_id_and_uuid.return_value = ('test-bus-id', 'test-uuid')
+        mock_context.return_value = Mock()
+        mock_queue.return_value = Mock()
+
+        expected_value = pyopencl.RuntimeError
+        mock_build.side_effect = expected_value
+
+        with pytest.raises(expected_value):
+            GPUCard(cl_gpu_device=Mock()).compile_cl_core(core='test-core')
+
+    @pytest.mark.positive
+    @patch.object(GPURigInfo, 'gpu_cards_info', new_callable=PropertyMock)
+    @patch('pyopencl.CommandQueue')
+    @patch('pyopencl.Context')
+    @patch.object(GPUCard, '_GPUCard__get_bus_id_and_uuid')
+    def test_memory_info_positive(
+            self,
+            mock_get_bus_id_and_uuid: Mock,
+            mock_context: Mock,
+            mock_queue: Mock,
+            mock_gpu_cards_info: Mock
+    ):
+        expected_value = 'test-memory-info'
+        bus_id = 'test-bus-id'
+        mock_get_bus_id_and_uuid.return_value = (bus_id, 'test-uuid')
+        mock_context.return_value = Mock()
+        mock_queue.return_value = expected_value
+        mock_gpu_cards_info.return_value = [
+            Mock(bus_id=bus_id, memory=expected_value)
+        ]
+
+        assert_that(
+            actual_or_assertion=GPUCard(cl_gpu_device=Mock()).memory_info,
+            matcher=equal_to(expected_value)
         )
