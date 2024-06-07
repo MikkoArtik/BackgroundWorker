@@ -1,4 +1,3 @@
-import logging
 import pathlib
 from typing import List, Union
 from unittest.mock import MagicMock, Mock, PropertyMock, patch
@@ -12,8 +11,10 @@ from gstream.node.gpu_rig import (
     FREE_MEMORY_SIZE_KEY,
     MEMORY_SIZE_UNIT_IN_BYTES,
     TOTAL_MEMORY_SIZE_KEY,
+    BusIdNotFound,
+    GPUCard,
     GPUCardInfo,
-    GPURigInfo, GPUCard, BusIdNotFound
+    GPURigInfo
 )
 
 
@@ -495,7 +496,7 @@ class TestGPUCard:
     @patch('pyopencl.CommandQueue')
     @patch('pyopencl.Context')
     @patch.object(GPUCard, '_GPUCard__get_bus_id_and_uuid')
-    def test_cl_queue_positive(
+    def test_compile_cl_core_positive(
             self,
             mock_get_bus_id_and_uuid: Mock,
             mock_context: Mock,
@@ -510,7 +511,9 @@ class TestGPUCard:
         mock_build.return_value = expected_value
 
         assert_that(
-            actual_or_assertion=GPUCard(cl_gpu_device=Mock()).compile_cl_core(core='test-core'),
+            actual_or_assertion=GPUCard(cl_gpu_device=Mock()).compile_cl_core(
+                core='test-core'
+            ),
             matcher=equal_to(expected_value)
         )
 
@@ -560,4 +563,143 @@ class TestGPUCard:
         assert_that(
             actual_or_assertion=GPUCard(cl_gpu_device=Mock()).memory_info,
             matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.positive
+    @pytest.mark.parametrize(
+        ['is_free', 'permitted_volume'], [(True, 1), (False, 0), (False, -1)]
+    )
+    @patch.object(GPUCard, 'memory_info', new_callable=PropertyMock)
+    @patch('pyopencl.CommandQueue')
+    @patch('pyopencl.Context')
+    @patch.object(GPUCard, '_GPUCard__get_bus_id_and_uuid')
+    def test_is_free_positive(
+            self,
+            mock_get_bus_id_and_uuid: Mock,
+            mock_context: Mock,
+            mock_queue: Mock,
+            mock_memory_info: Mock,
+            is_free: bool,
+            permitted_volume: int
+    ):
+        mock_get_bus_id_and_uuid.return_value = ('test-bus', 'test-uuid')
+        mock_context.return_value = None
+        mock_queue.return_value = None
+
+        mock_memory_info.return_value = MagicMock(
+            permitted_volume=permitted_volume
+        )
+        assert_that(
+            actual_or_assertion=GPUCard(cl_gpu_device=Mock()).is_free,
+            matcher=is_(is_free)
+        )
+
+    @pytest.mark.positive
+    @patch('pyopencl.CommandQueue')
+    @patch('pyopencl.Context')
+    @patch.object(GPUCard, '_GPUCard__get_bus_id_and_uuid')
+    def test_max_dimension_positive(
+            self,
+            mock_get_bus_id_and_uuid: Mock,
+            mock_context: Mock,
+            mock_queue: Mock
+    ):
+        mock_get_bus_id_and_uuid.return_value = ('test-bus', 'test-uuid')
+        mock_context.return_value = None
+        mock_queue.return_value = None
+        expected_value = 'test'
+
+        assert_that(
+            actual_or_assertion=GPUCard(
+                cl_gpu_device=Mock(max_work_item_dimensions=expected_value)
+            ).max_dimension,
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.positive
+    @patch('pyopencl.CommandQueue')
+    @patch('pyopencl.Context')
+    @patch.object(GPUCard, '_GPUCard__get_bus_id_and_uuid')
+    def test_max_warp_size_positive(
+            self,
+            mock_get_bus_id_and_uuid: Mock,
+            mock_context: Mock,
+            mock_queue: Mock
+    ):
+        mock_get_bus_id_and_uuid.return_value = ('test-bus', 'test-uuid')
+        mock_context.return_value = None
+        mock_queue.return_value = None
+        expected_value = 'test'
+
+        assert_that(
+            actual_or_assertion=GPUCard(
+                cl_gpu_device=Mock(warp_size_nv=expected_value)
+            ).max_warp_size,
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.positive
+    @patch('pyopencl.CommandQueue')
+    @patch('pyopencl.Context')
+    @patch.object(GPUCard, '_GPUCard__get_bus_id_and_uuid')
+    def test_max_block_size_positive(
+            self,
+            mock_get_bus_id_and_uuid: Mock,
+            mock_context: Mock,
+            mock_queue: Mock
+    ):
+        mock_get_bus_id_and_uuid.return_value = ('test-bus', 'test-uuid')
+        mock_context.return_value = None
+        mock_queue.return_value = None
+        expected_value = 'test'
+
+        assert_that(
+            actual_or_assertion=GPUCard(
+                cl_gpu_device=Mock(max_work_group_size=expected_value)
+            ).max_block_size,
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.positive
+    @patch('pyopencl.CommandQueue')
+    @patch('pyopencl.Context')
+    @patch.object(GPUCard, '_GPUCard__get_bus_id_and_uuid')
+    def test_max_grid_size_positive(
+            self,
+            mock_get_bus_id_and_uuid: Mock,
+            mock_context: Mock,
+            mock_queue: Mock
+    ):
+        mock_get_bus_id_and_uuid.return_value = ('test-bus', 'test-uuid')
+        mock_context.return_value = None
+        mock_queue.return_value = None
+        expected_value = 'test'
+
+        assert_that(
+            actual_or_assertion=GPUCard(
+                cl_gpu_device=Mock(max_work_item_sizes=expected_value)
+            ).max_grid_size,
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.positive
+    @patch('pyopencl.CommandQueue')
+    @patch('pyopencl.Context')
+    @patch.object(GPUCard, '_GPUCard__get_bus_id_and_uuid')
+    def test_grid_cells_count_positive(
+            self,
+            mock_get_bus_id_and_uuid: Mock,
+            mock_context: Mock,
+            mock_queue: Mock
+    ):
+        mock_get_bus_id_and_uuid.return_value = ('test-bus', 'test-uuid')
+        mock_context.return_value = None
+        mock_queue.return_value = None
+        max_grid_size = [2]
+
+        assert_that(
+            actual_or_assertion=GPUCard(
+                cl_gpu_device=Mock(max_work_item_sizes=max_grid_size)
+            ).grid_cells_count,
+            matcher=equal_to(max_grid_size[0])
         )
