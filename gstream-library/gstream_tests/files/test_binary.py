@@ -74,7 +74,7 @@ class TestCharType:
                 matcher=equal_to('Value has invalid type or empty')
             )
 
-    @pytest.mark.positve
+    @pytest.mark.positive
     def test_pack_positive(self):
         expected_value = 'test'
         assert_that(
