@@ -14,7 +14,9 @@ from gstream.node.gpu_rig import (
     BusIdNotFound,
     GPUCard,
     GPUCardInfo,
-    GPURigInfo
+    GPURig,
+    GPURigInfo,
+    NoFreeGPUCardException
 )
 
 
@@ -703,3 +705,233 @@ class TestGPUCard:
             ).grid_cells_count,
             matcher=equal_to(max_grid_size[0])
         )
+
+
+class TestGPURig:
+
+    @pytest.mark.positive
+    @patch.object(GPURig, '__init__')
+    @patch('pyopencl.get_platforms')
+    def test_cl_platforms_positive(
+            self,
+            mock_get_platforms: Mock,
+            mock_init: Mock
+    ):
+        expected_value = 'test-platform'
+        mock_init.return_value = None
+        mock_get_platforms.return_value = expected_value
+
+        assert_that(
+            actual_or_assertion=GPURig()._GPURig__cl_platforms,
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.positive
+    @patch.object(GPURig, '_GPURig__cl_platforms', new_callable=PropertyMock)
+    def test_get_cl_gpu_devices_positive(
+            self,
+            mock_cl_platforms: Mock
+    ):
+        expected_value = []
+        mock_cl_platforms.return_value = expected_value
+
+        assert_that(
+            actual_or_assertion=GPURig()._GPURig__get_cl_gpu_devices(),
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.positive
+    @patch.object(GPURig, '_GPURig__get_cl_gpu_devices')
+    def test_correct_attributes_positive(self, mock_get_cl_gpu_devices: Mock):
+        expected_value = []
+        mock_get_cl_gpu_devices.return_value = expected_value
+
+        assert_that(
+            actual_or_assertion=GPURig()._GPURig__gpu__cards,
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.positive
+    @patch.object(GPURig, '__init__')
+    def test_info_positive(self, mock_init: Mock):
+        mock_init.return_value = None
+        assert_that(
+            actual_or_assertion=isinstance(GPURig().info, type(GPURigInfo())),
+            matcher=is_(True)
+        )
+
+    @pytest.mark.positive
+    @pytest.mark.parametrize(
+        ['permitted_volume', 'expected_value'],
+        [(-1, False), (0, False), (1, True)]
+    )
+    @patch.object(GPURig, 'info', new_callable=PropertyMock)
+    @patch.object(GPURig, '__init__')
+    def test_is_available_ram_memory_positive(
+            self,
+            mock_init: Mock,
+            mock_info: Mock,
+            permitted_volume: int,
+            expected_value: bool
+    ):
+        mock_init.return_value = None
+        mock_info.return_value = MagicMock(
+            ram_memory_info=MagicMock(permitted_volume=permitted_volume)
+        )
+        assert_that(
+            actual_or_assertion=GPURig().is_available_ram_memory,
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.positive
+    @patch.object(GPURig, '_GPURig__get_cl_gpu_devices')
+    def test_gpu_cards_positive(
+            self,
+            mock_gpu_devices: Mock
+    ):
+        expected_value = 'test-gpu'
+        mock_gpu_devices.return_value = []
+        obj = GPURig()
+        obj._GPURig__gpu__cards = expected_value
+
+        assert_that(
+            actual_or_assertion=obj.gpu_cards,
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.positive
+    @patch.object(GPUCard, '__init__')
+    @patch.object(GPURig, 'gpu_cards', new_callable=PropertyMock)
+    @patch.object(GPURig, '_GPURig__get_cl_gpu_devices')
+    def test_get_gpu_card_by_bus_id_positive(
+            self,
+            mock_gpu_devices: Mock,
+            mock_gpu_cards: Mock,
+            mock_init: Mock
+    ):
+        bus_id = 'test-bus-id'
+        expected_value = MagicMock(bus_id=bus_id)
+        mock_gpu_devices.return_value = [MagicMock()]
+        mock_gpu_cards.return_value = [expected_value]
+        mock_init.return_value = None
+
+        assert_that(
+            actual_or_assertion=GPURig().get_gpu_card_by_bus_id(
+                bus_id_value=bus_id
+            ),
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.negative
+    @patch.object(GPUCard, '__init__')
+    @patch.object(GPURig, 'gpu_cards', new_callable=PropertyMock)
+    @patch.object(GPURig, '_GPURig__get_cl_gpu_devices')
+    def test_get_gpu_card_by_bus_id_negative(
+            self,
+            mock_gpu_devices: Mock,
+            mock_gpu_cards: Mock,
+            mock_init: Mock
+    ):
+        bus_id = 'test-bus-id'
+        mock_gpu_devices.return_value = [MagicMock()]
+        mock_gpu_cards.return_value = []
+        mock_init.return_value = None
+
+        with pytest.raises(BusIdNotFound) as error:
+            GPURig().get_gpu_card_by_bus_id(bus_id_value=bus_id)
+
+            assert_that(
+                actual_or_assertion=error.value,
+                matcher=equal_to(f'Bus id {bus_id} is not exist')
+            )
+
+    @pytest.mark.positive
+    @patch.object(GPUCard, '__init__')
+    @patch.object(GPURig, 'gpu_cards', new_callable=PropertyMock)
+    @patch.object(GPURig, '_GPURig__get_cl_gpu_devices')
+    def test_get_gpu_card_by_uuid_positive(
+            self,
+            mock_gpu_devices: Mock,
+            mock_gpu_cards: Mock,
+            mock_init: Mock
+    ):
+        uuid = 'test-uuid'
+        expected_value = MagicMock(uuid=uuid)
+        mock_gpu_devices.return_value = [MagicMock()]
+        mock_gpu_cards.return_value = [expected_value]
+        mock_init.return_value = None
+
+        assert_that(
+            actual_or_assertion=GPURig().get_gpu_card_by_uuid(
+                uuid_value=uuid
+            ),
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.negative
+    @patch.object(GPUCard, '__init__')
+    @patch.object(GPURig, 'gpu_cards', new_callable=PropertyMock)
+    @patch.object(GPURig, '_GPURig__get_cl_gpu_devices')
+    def test_get_gpu_card_by_uuid_negative(
+            self,
+            mock_gpu_devices: Mock,
+            mock_gpu_cards: Mock,
+            mock_init: Mock
+    ):
+        uuid_value = 'test-uuid'
+        mock_gpu_devices.return_value = [MagicMock()]
+        mock_gpu_cards.return_value = []
+        mock_init.return_value = None
+
+        with pytest.raises(BusIdNotFound) as error:
+            GPURig().get_gpu_card_by_uuid(uuid_value=uuid_value)
+
+            assert_that(
+                actual_or_assertion=error.value,
+                matcher=equal_to(f'Bus uuid {uuid_value} is not exist')
+            )
+
+    @pytest.mark.positive
+    @patch.object(GPUCard, '__init__')
+    @patch.object(GPURig, 'gpu_cards', new_callable=PropertyMock)
+    @patch.object(GPURig, '_GPURig__get_cl_gpu_devices')
+    def test_get_free_gpu_card_positive(
+            self,
+            mock_gpu_devices: Mock,
+            mock_gpu_cards: Mock,
+            mock_init: Mock
+    ):
+        free_volume = MagicMock(free_volume=1)
+        expected_value = MagicMock(is_free=True, memory_info=free_volume)
+        mock_gpu_devices.return_value = [MagicMock()]
+        mock_gpu_cards.return_value = [expected_value]
+        mock_init.return_value = None
+
+        assert_that(
+            actual_or_assertion=GPURig().get_free_gpu_card(
+                required_memory_size=free_volume.free_volume - 1
+            ),
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.negative
+    @patch.object(GPUCard, '__init__')
+    @patch.object(GPURig, 'gpu_cards', new_callable=PropertyMock)
+    @patch.object(GPURig, '_GPURig__get_cl_gpu_devices')
+    def test_get_free_gpu_card_negative(
+            self,
+            mock_gpu_devices: Mock,
+            mock_gpu_cards: Mock,
+            mock_init: Mock
+    ):
+        mock_gpu_devices.return_value = [MagicMock()]
+        mock_gpu_cards.return_value = []
+        mock_init.return_value = None
+
+        with pytest.raises(NoFreeGPUCardException) as error:
+            GPURig().get_free_gpu_card(required_memory_size=1)
+
+            assert_that(
+                actual_or_assertion=error.value,
+                matcher=equal_to('All GPU card are busy now')
+            )
