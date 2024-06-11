@@ -352,8 +352,7 @@ class TestGPUCard:
             mock_context: Mock,
             mock_queue: Mock
     ):
-        uuid = 'test-uuid'
-        mock_get_bus_id_and_uuid.return_value = ('test-bus', uuid)
+        mock_get_bus_id_and_uuid.return_value = ('test-bus', 'test-uuid')
         mock_context.return_value = Mock()
         mock_queue.return_value = Mock()
 
@@ -375,8 +374,7 @@ class TestGPUCard:
             mock_context: Mock,
             mock_queue: Mock
     ):
-        uuid = 'test-uuid'
-        mock_get_bus_id_and_uuid.return_value = ('test-bus', uuid)
+        mock_get_bus_id_and_uuid.return_value = ('test-bus', 'test-uuid')
         mock_context.return_value = Mock()
         mock_queue.return_value = Mock()
 
