@@ -110,10 +110,10 @@ class GPUArray:
         Returns: numpy array
 
         """
-        if self.__cl_buffer is None:
+        if self.cl_buffer is None:
             return np.array([])
 
-        cl.enqueue_copy(cl_queue, self.__src, self.__cl_buffer)
+        cl.enqueue_copy(cl_queue, self.__src, self.cl_buffer)
         return self.__src
 
     def release(self) -> None:
@@ -122,9 +122,9 @@ class GPUArray:
         Returns: None
 
         """
-        if isinstance(self.__cl_buffer, cl.Buffer):
+        if isinstance(self.cl_buffer, cl.Buffer):
             try:
-                self.__cl_buffer.release()
+                self.cl_buffer.release()
             except cl.LogicError:
                 pass
 
