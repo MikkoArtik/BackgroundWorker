@@ -246,3 +246,103 @@ class TestGPUTask:
             ).gpu_args,
             matcher=equal_to([])
         )
+
+    @pytest.mark.positive
+    @patch.object(GPUCard, 'compile_cl_core')
+    @pytest.mark.asyncio
+    async def test_load_args_positive(
+            self,
+            mock_compile_cl_core: Mock,
+    ):
+        mock_compile_cl_core.return_value = None
+        expected_value = list(range(9))
+        obj = GPUTask(gpu_card=Mock(), core='core')
+        await obj._GPUTask__load_args(args=expected_value)
+
+        assert_that(
+            actual_or_assertion=obj._GPUTask__gpu_args,
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.positive
+    @patch.object(GPUTask, '_GPUTask__load_args')
+    @patch.object(GPUCard, 'compile_cl_core')
+    @pytest.mark.asyncio
+    async def test_run_positive(
+            self,
+            mock_compile_cl_core: Mock,
+            mock_load_args: Mock
+    ):
+        mock_compile_cl_core.return_value = None
+        args = list(range(5))
+        await GPUTask(gpu_card=Mock(), core='core').run(
+            function_name='q',
+            args=args
+        )
+        mock_load_args.assert_called_once_with(args=args)
+
+    @pytest.mark.negative
+    @patch.object(GPUTask, '_GPUTask__load_args')
+    @patch.object(GPUCard, 'compile_cl_core')
+    @pytest.mark.asyncio
+    async def test_run_negative(
+            self,
+            mock_compile_cl_core: Mock,
+            mock_load_args: Mock
+    ):
+        mock_compile_cl_core.return_value = None
+        mock_load_args.side_effect = NoFreeGPUCardException
+
+        with pytest.raises(NoFreeGPUCardException):
+            await GPUTask(gpu_card=Mock(), core='core').run(
+                function_name='some-func',
+                args=list(range(5))
+            )
+
+    @pytest.mark.positive
+    @pytest.mark.parametrize(
+        'is_equal', [True, False]
+    )
+    @patch.object(GPUCard, 'compile_cl_core')
+    def test_eq_positive(self, mock_compile_cl_core: Mock, is_equal: Mock):
+        mock_compile_cl_core.return_value = None
+        if is_equal:
+            gpu_card = Mock()
+            core = 'core'
+            obj = GPUTask(gpu_card=gpu_card, core=core)
+            other_obj = GPUTask(gpu_card=gpu_card, core=core)
+
+        else:
+            gpu_card = Mock()
+            core = 'core'
+            obj = GPUTask(gpu_card=gpu_card, core=core)
+            other_obj = GPUTask(gpu_card=Mock(), core='other-core')
+
+        assert_that(
+            actual_or_assertion=obj == other_obj,
+            matcher=is_(is_equal)
+        )
+
+    @pytest.mark.positive
+    @pytest.mark.parametrize(
+        'is_not_equal', [True, False]
+    )
+    @patch.object(GPUCard, 'compile_cl_core')
+    def test_ne_positive(self, mock_compile_cl_core: Mock, is_not_equal: Mock):
+        mock_compile_cl_core.return_value = None
+        if is_not_equal:
+            gpu_card = Mock()
+            core = 'core'
+            obj = GPUTask(gpu_card=gpu_card, core=core)
+            other_obj = GPUTask(gpu_card=Mock(), core='other-core')
+
+        else:
+            gpu_card = Mock()
+            core = 'core'
+            obj = GPUTask(gpu_card=gpu_card, core=core)
+            other_obj = GPUTask(gpu_card=gpu_card, core=core)
+
+        assert_that(
+            actual_or_assertion=obj != other_obj,
+            matcher=is_(is_not_equal)
+        )
