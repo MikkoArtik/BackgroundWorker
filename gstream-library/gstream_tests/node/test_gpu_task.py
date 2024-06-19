@@ -1,4 +1,5 @@
-from unittest.mock import MagicMock, Mock, PropertyMock, patch
+from typing import Union
+from unittest.mock import AsyncMock, MagicMock, Mock, PropertyMock, patch
 
 import numpy as np
 import pyopencl as cl
@@ -346,3 +347,39 @@ class TestGPUTask:
             actual_or_assertion=obj != other_obj,
             matcher=is_(is_not_equal)
         )
+
+    @pytest.mark.positive
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        'arg_type', [int, float]
+    )
+    async def test_convert_from_positive(
+            self,
+            arg_type: Union[int, float]
+    ):
+        expected_value = 'test'
+        arg = Mock(spec=arg_type, cl_buffer=expected_value)
+        assert_that(
+            actual_or_assertion=await GPUTask(
+                gpu_card=Mock(),
+                core='core'
+            )._GPUTask__convert_from(arg=arg),
+            matcher=equal_to(expected_value)
+        )
+
+    @pytest.mark.positive
+    @pytest.mark.asyncio
+    async def test_convert_from_cl_buffer_none_positive(self):
+        arg = AsyncMock(cl_buffer=None)
+        arg.return_value.load_to_gpu.return_value = 'test'
+        assert_that(
+            actual_or_assertion=await GPUTask(
+                gpu_card=Mock(),
+                core='core'
+            )._GPUTask__convert_from(arg=arg),
+            matcher=is_(None)
+        )
+
+    # TODO: add test for __convert_to_gpu_type
+    # TODO: add test for __convert_from int
+    # TODO: add test for __convert_from float

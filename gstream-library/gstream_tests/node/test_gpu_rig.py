@@ -79,7 +79,8 @@ class TestGPURigInfo:
     def test_parse_line_negative(self, line: str):
         assert_that(
             actual_or_assertion=GPURigInfo._GPURigInfo__parse_line(
-                line=line),
+                line=line
+            ),
             matcher=is_(None)
         )
 
