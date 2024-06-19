@@ -411,9 +411,8 @@ class TestTask:
             app.include_router(task.router)
 
             new_dependencies = {
-                get_redis_storage: (
-                    DependencyMock.override_get_redis_with_instance
-                ),
+                get_redis_storage:
+                    DependencyMock.override_get_redis_with_instance,
             }
             app.dependency_overrides.update(new_dependencies)
 
@@ -471,9 +470,8 @@ class TestTask:
                 app.include_router(task.router)
 
                 new_dependencies = {
-                    get_redis_storage: (
-                        DependencyMock.override_get_redis_with_instance
-                    ),
+                    get_redis_storage:
+                        DependencyMock.override_get_redis_with_instance,
                     parse_body: DependencyMock.override_parse_body,
                     get_file_storage: DependencyMock.override_get_file_storage
                 }
@@ -533,9 +531,8 @@ class TestTask:
                 app.include_router(task.router)
 
                 new_dependencies = {
-                    get_redis_storage: (
-                        DependencyMock.override_get_redis_with_instance
-                    ),
+                    get_redis_storage:
+                        DependencyMock.override_get_redis_with_instance,
                     parse_body: DependencyMock.override_parse_body,
                     get_file_storage: DependencyMock.override_get_file_storage
                 }
@@ -598,13 +595,12 @@ class TestTask:
                 app.include_router(task.router)
 
                 new_dependencies = {
-                    get_redis_storage: (
-                        DependencyMock.override_get_redis_with_instance
-                    ),
+                    get_redis_storage:
+                        DependencyMock.override_get_redis_with_instance,
                     parse_body: DependencyMock.override_parse_body,
-                    get_file_storage: (
+                    get_file_storage:
                         DependencyMock.override_get_file_storage_with_instance
-                    )
+
                 }
                 app.dependency_overrides.update(new_dependencies)
 

@@ -12,7 +12,8 @@ class TestDelaysFinderArgsBinaryFile:
 
     @pytest.mark.positive
     @patch.object(
-        gstream.files.base.BaseBinaryFileReader, '_BaseBinaryFileReader__read')
+        gstream.files.base.BaseBinaryFileReader, '_BaseBinaryFileReader__read'
+    )
     @patch.object(
         gstream.models.DelaysFinderParameters,
         '__init__'
