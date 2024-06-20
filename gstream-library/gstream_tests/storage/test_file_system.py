@@ -1,5 +1,5 @@
 import pathlib
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from hamcrest import assert_that, equal_to, is_
@@ -9,7 +9,7 @@ from gstream.storage.file_system import Storage
 
 class TestStorage:
 
-    @pytest.mark.positve
+    @pytest.mark.positive
     def test_correct_attributes_positive(self):
         root = Mock()
         root.exists.return_value = True
@@ -44,7 +44,7 @@ class TestStorage:
                 matcher=equal_to(expected_value)
             )
 
-    @pytest.mark.positve
+    @pytest.mark.positive
     def test_root_positive(self):
         root = Mock()
         root.exists.return_value = True
