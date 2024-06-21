@@ -57,17 +57,6 @@ class TestStorage:
 
     @pytest.mark.positive
     @patch.object(pathlib.PurePath, '_from_parts')
-    def wtest_all_filenames_positive(self, mock_init: Mock):
-        mock_init._flavour.is_supported = True
-        root = Mock()
-        root.iterdir.return_value = ['test']
-        assert_that(
-            actual_or_assertion=Storage(root=root).all_filenames,
-            matcher=equal_to(set())
-        )
-
-    @pytest.mark.positive
-    @patch.object(pathlib.PurePath, '_from_parts')
     def test_all_filenames_positive(self, mock_from_parts: Mock):
         path = Mock()
         path.is_dir.return_value = True
