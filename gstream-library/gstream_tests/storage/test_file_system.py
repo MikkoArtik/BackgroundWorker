@@ -173,7 +173,7 @@ class TestStorage:
 
     @pytest.mark.positive
     @patch.object(pathlib.PurePath, '_from_parts')
-    def test_get_binary_data_from_file_positive(
+    def test_remove_file_positive(
             self,
             mock_from_parts: Mock
     ):
@@ -184,7 +184,7 @@ class TestStorage:
 
     @pytest.mark.negative
     @patch.object(Storage, 'is_file_exist')
-    def test_get_binary_data_from_file_negative(
+    def test_remove_file_negative(
             self,
             mock_is_file_exist: Mock
     ):

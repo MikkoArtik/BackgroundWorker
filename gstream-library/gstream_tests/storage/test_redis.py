@@ -1,9 +1,11 @@
 import datetime
-from unittest.mock import Mock, patch, AsyncMock, PropertyMock
+from typing import List, Optional, Union
+from unittest.mock import AsyncMock, Mock, PropertyMock, patch
+
 import pytest
 from hamcrest import assert_that, equal_to
-from gstream.storage.redis import Storage, DATETIME_FORMAT, format_message
-from redis.asyncio import ConnectionPool, Redis
+
+from gstream.storage.redis import DATETIME_FORMAT, Storage, format_message
 
 
 class TestFormatMessage:
@@ -48,7 +50,7 @@ class TestStorage:
             ({'key_': {'key2': {'key3': 3}}}, {'key_:key2:key3': 3}),
             ({'key_': True}, {'key_': 1}),
             ({'key_': False}, {'key_': 0})
-         ]
+        ]
     )
     def test_create_flatten_dict_positive(
             self,
@@ -92,8 +94,39 @@ class TestStorage:
         await Storage(
             pool=AsyncMock(),
             key_expiration='test'
-        )._Storage__add_dict(value='q')
+        )._Storage__add_dict(value='test')
 
         mock_adapter.return_value.mset.assert_called_once_with(
             mapping=flatten_dict
         )
+
+    @pytest.mark.positive
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ['is_strip', 'keys', 'expected_value'],
+        [
+            (False, ['key1', 'key2'], ['key1', 'key2']),
+            (True, None, None),
+            (True, ['key1'], 'key1')
+        ]
+    )
+    async def test_get_keys_positive(
+            self,
+            is_strip: bool,
+            keys: Union[List[str], bool],
+            expected_value: Optional[Union[List[str], str]]
+    ):
+        async_mock = AsyncMock(return_value=keys)
+
+        with patch.object(
+            Storage,
+            'adapter',
+            new_callable=lambda: AsyncMock(keys=async_mock)
+        ):
+            assert_that(
+                actual_or_assertion=await Storage(
+                    pool=AsyncMock(),
+                    key_expiration='test'
+                )._Storage__get_keys(pattern='test', is_strip=is_strip),
+                matcher=equal_to(expected_value)
+            )
